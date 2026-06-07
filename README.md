@@ -24,4 +24,4 @@ This repository contains the volatile, recovered remnants of a broken machine le
 ### Repository README
 
 * **Professional Documentation:** Remember to update this `README` with a professional documentation of your repo.
-* **Authors:** When working in teams indicate the team members - names and enrollment numbers - clearly in the top of the readme.
+* **Author(s):** Indicate your name(s) and enrollment number(s) clearly in the top of the readme.
