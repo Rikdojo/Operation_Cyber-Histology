@@ -18,8 +18,8 @@ class Trainer:
         correct, sum = 0, 0
         
         for images, labels in dataloader:
-            images, labels = images.to(self.device), labels.to(self.device)
-            
+            images, labels = images.to(self.device), labels.to(self.device).squeeze(1).long() # Convert labels from shape [batch_size, 1] to [batch_size],because CrossEntropyLoss expects class indices as a 1D tensor.
+            self.optimizer.zero_grad() # add zero the parameter gradients to prevent accumulation of gradients across batches.
             outputs = self.model(images)
             loss = self.criterion(outputs, labels)
             
@@ -40,8 +40,7 @@ class Trainer:
         
         with torch.no_grad():
             for images, labels in dataloader:
-                images, labels = images.to(self.device), labels.to(self.device)
-                
+                images, labels = images.to(self.device), labels.to(self.device).squeeze(1).long() # Convert labels from shape [batch_size, 1] to [batch_size],because CrossEntropyLoss expects class indices as a 1D tensor.               
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
                 
