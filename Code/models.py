@@ -66,12 +66,13 @@ class AlexNet(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
 
-        drop_rate = kwargs.get("drop_rate")
-        in_channels = kwargs.get("in_channels")
-        num_classes = kwargs.get("num_classes")
+        drop_rate = kwargs.get("drop_rate", 0.5)
+        in_channels = kwargs.get("in_channels") # to get in_channels from the config file, because it is not a fixed value like 3 for RGB images, but can be changed for experimentation.
+        num_classes = kwargs.get("num_classes") # to get num_classes from the config file, because it is not a fixed value like 1000 for ImageNet, but can be changed for experimentation.
         
         self.features = nn.Sequential(
-            nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),
+           # print("Using in_channels:", in_channels), # add this line to print the value of in_channels for debugging purposes.
+            nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3), # to use in_channels instead of hardcoding 3, because it can be changed for experimentation.
             nn.BatchNorm2d(48),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
@@ -92,12 +93,12 @@ class AlexNet(nn.Module):
         
         self.classifier = nn.Sequential(
             nn.Dropout(p=drop_rate),
-            nn.Linear(2048, 1024),
+            nn.Linear(3072, 1024),      #change the first linear layer's input features from 2048 to 192 *4*4=3072
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, num_classes),
+            nn.Linear(1024, num_classes), # to use num_classes instead of hardcoding 1000, because it can be changed for experimentation.
         )
 
     def forward(self, x):
@@ -180,4 +181,5 @@ class ResNet18(nn.Module):
         out = self.stage4(out)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
-        self.classifier(out)
+
+        return self.classifier(out) # add return the output of the classifier layer, because the forward method should return the output of the model, which is the output of the classifier layer.
