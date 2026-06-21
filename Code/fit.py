@@ -18,8 +18,11 @@ class Trainer:
         correct, sum = 0, 0
         
         for images, labels in dataloader:
-            images, labels = images.to(self.device), labels.to(self.device)
+            images = images.to(self.device)
+            labels = labels.to(self.device).squeeze(1).long()
             
+            # Clear old gradients before calculating this batch.
+            self.optimizer.zero_grad()
             outputs = self.model(images)
             loss = self.criterion(outputs, labels)
             
@@ -40,7 +43,8 @@ class Trainer:
         
         with torch.no_grad():
             for images, labels in dataloader:
-                images, labels = images.to(self.device), labels.to(self.device)
+                images = images.to(self.device)
+                labels = labels.to(self.device).squeeze(1).long()
                 
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
