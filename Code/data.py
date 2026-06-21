@@ -9,10 +9,8 @@ from torch.utils.data import TensorDataset, DataLoader
 
 def get_loaders(data, data_path, batch_size, val_split=0.1):
     
-    #I made the loader support both possible dataset file names so the training script does not fail because of a small naming difference.
+    # Load the dataset file from the data folder, for example data/cells.pt.
     d_path = Path(data_path) / f"{data}.pt"
-    if not d_path.exists():
-        d_path = Path(data_path) / f"{data}_data.pt"
 
     data_dict = torch.load(d_path)
 
