@@ -15,9 +15,13 @@ class Trainer:
     def train_one_epoch(self, dataloader):
         self.model.train()
         running_loss = 0.0
+        # I renamed sum to total to avoid shadowing a Python built-in and make the accuracy calculation easier to read.
+        # Now total= sum
         correct, total = 0, 0
         
         for images, labels in dataloader:
+ # reshaped labels into a one-dimensional integer tensor because that is what CrossEntropyLoss expects.
+
             images = images.to(self.device)
             labels = labels.to(self.device).view(-1).long()
             
@@ -43,6 +47,8 @@ class Trainer:
         
         with torch.no_grad():
             for images, labels in dataloader:
+             # Validation uses the same loss function as training.
+            # otherwise validation can fail even if training works.
                 images = images.to(self.device)
                 labels = labels.to(self.device).view(-1).long()
                 

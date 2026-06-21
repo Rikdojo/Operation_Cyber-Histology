@@ -1,4 +1,5 @@
 {
+  "_comment": "I added a simple config file so training settings can be changed from one place instead of hardcoding them in Python.",
   "DATA": "cells",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,

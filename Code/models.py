@@ -6,7 +6,8 @@ MG 6/6/2026
 import torch
 import torch.nn as nn
 
-activation_str = "ReLU"  # Default activation for ResNet blocks.
+# Default activation for ResNet blocks.
+activation_str = "ReLU"  
 
 
 class VGGBlock(nn.Module):
@@ -21,6 +22,10 @@ class VGGBlock(nn.Module):
         for i in range(num_convs):
             is_config_c_tail = (num_convs == 3 and i == 2)
             kernel_size = 1 if is_config_c_tail else 3
+            
+            # I updated current_in_channels after each convolution so each 
+            # layer receives the correct number of channels.
+            #I set padding to 0 for the 1x1 VGG convolution so it does not change the image size unexpectedly.
             conv_padding = 0 if kernel_size == 1 else padding
             layers.append(nn.Conv2d(current_in_channels, out_channels, kernel_size=kernel_size, padding=conv_padding))
             layers.append(nn.BatchNorm2d(out_channels))
@@ -64,6 +69,7 @@ class ResBlock(nn.Module):
 
 class AlexNet(nn.Module):
     """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
+    #I changed AlexNet to use in_channels from the config instead of hardcoding RGB input.
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
 
@@ -91,13 +97,19 @@ class AlexNet(nn.Module):
         
         self.classifier = nn.Sequential(
             nn.Dropout(p=drop_rate),
+            
+            #The flattened feature size after AlexNet's convolution layers is 3072 
+            # for the current input setup as 2048 caused a shape mismatch.
+            
             nn.Linear(3072, 1024),
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, num_classes),
-        )
+            #I changed AlexNet to output num_classes 
+            # so it matches the selected dataset.
+            # old AlexNet always returned 11 classes.
+            nn.Linear(1024, num_classes))
 
     def forward(self, x):
         x = self.features(x)
@@ -144,11 +156,19 @@ class ResNet18(nn.Module):
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
 
+#If ResNet directly used None, activation selection could fail.
+
+#The new code falls back to the default activation_str, which is now ReLU.
+
         activation = getattr(nn, kwargs.get("activation_str", activation_str) or activation_str)
 
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.activation = activation(inplace=True)
+        #The print was only useful for debugging. so i removed it.
+
+#It made training output noisy and did not affect model behavior.
+        #print("Using activation function:", self.activation)
         
         self.stage1 = nn.Sequential(
             ResBlock(64, 64, activation(inplace=True), stride=1),
@@ -177,5 +197,7 @@ class ResNet18(nn.Module):
         out = self.stage3(out)
         out = self.stage4(out)
         out = self.avgpool(out)
+
+        #I fixed ResNet's forward method so it returns the class scores.
         out = torch.flatten(out, 1)
         return self.classifier(out)
