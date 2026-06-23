@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 from data import get_loaders
 import models
-from fit import Trainer
+from trainer import Trainer
 
 def main():   
     # Load config from the same folder as train.py, so it works when running python Code/train.py.
