@@ -1,33 +1,38 @@
-"""
-MAI/IDL SS26 - Final assignment. 
-
-MG 6/6/2026
-"""
 import json
+from pathlib import Path
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from data import get_loaders
-import models
-from fit import Trainer
+from utils import write_csv
+from runner import run_experiment
 
-def main():   
-    with open("config.json", "r") as f:
+
+def main():
+    base_dir = Path(__file__).resolve().parent
+
+    with open(base_dir / "config.json", "r") as f:
         config = json.load(f)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training executing on device: {device}")
+    for dataset_name, dataset_info in config["DATASETS"].items():
+        for model_name in config["MODELS"]:
+            for variant_name in config["VARIANTS"]:
+                experiment_config = {
+                    **config["TRAINING"],
+                    **dataset_info,
+                    "DATA": dataset_name,
+                    "MODEL": model_name,
+                    "VARIANT": variant_name,
+                }
 
-    train_loader, val_loader, _ = get_loaders(data=config["DATA"], data_path=config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
+                print("\n" + "=" * 60)
+                print(f"{variant_name} | {model_name} | {dataset_name}")
+                print("=" * 60)
 
-    model_class = getattr(models, config["MODEL"])
-    model = model_class(in_channels=config["CHANNELS"], num_classes=config["NUM_CLASSES"], drop_rate=0.99, activation_str=None).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
+                result = run_experiment(experiment_config)
 
-    trainer = Trainer(model, criterion, optimizer, device)
-    trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])
+                write_csv(
+                    result,
+                    base_dir / "results.csv"
+                )
+
 
 if __name__ == "__main__":
     main()

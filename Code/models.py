@@ -146,7 +146,7 @@ class ResNet18(nn.Module):
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
 
-        activation = getattr(nn, activation_str)
+        activation = getattr(nn, kwargs.get("activation_str", activation_str) or activation_str)
 
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -183,3 +183,14 @@ class ResNet18(nn.Module):
         out = torch.flatten(out, 1)
 
         return self.classifier(out) # add return the output of the classifier layer, because the forward method should return the output of the model, which is the output of the classifier layer.
+
+
+# Lighteright version of Models 
+
+class LightAlexNet(nn.Module):
+    return 
+class LightVGG16(nn.Module):
+    return 
+
+class LightResNet18(nn.Module):
+    return 
