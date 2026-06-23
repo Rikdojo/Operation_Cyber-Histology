@@ -120,6 +120,22 @@ class Trainer:
         scores["loss"] = running_loss / total
         return scores
 
+    def predict(self, dataloader):
+        self.model.eval()
+        all_predictions = []
+        all_labels = []
+
+        with torch.no_grad():
+            for images, labels in dataloader:
+                images = images.to(self.device)
+                outputs = self.model(images)
+                predictions = outputs.argmax(dim=1)
+
+                all_predictions.append(predictions.cpu())
+                all_labels.append(labels.view(-1).cpu())
+
+        return torch.cat(all_predictions), torch.cat(all_labels)
+
     def fit(self, train_loader, val_loader, epochs):
         print("\n Starting Training Routine...")
         print("-" * 50)

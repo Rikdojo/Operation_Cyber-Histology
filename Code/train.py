@@ -49,6 +49,11 @@ def get_run_list(config, run_all=False):
 
 
 def build_model(model_name, dataset_name, config):
+    if dataset_name not in config["DATASETS"]:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
+    if model_name not in config["MODELS"]:
+        raise ValueError(f"Unknown model: {model_name}")
+
     dataset_config = config["DATASETS"][dataset_name]
     model_class = getattr(models, model_name)
     model = model_class(
@@ -60,8 +65,7 @@ def build_model(model_name, dataset_name, config):
     return model
 
 
-def run_training(data_name, model_name, config, device):
-    print(f"\nRunning {model_name} on {data_name}")
+def prepare_experiment(data_name, model_name, config, device):
     data_path = get_data_path(config)
     train_loader, val_loader, test_loader = get_loaders(
         data=data_name,
@@ -73,8 +77,17 @@ def run_training(data_name, model_name, config, device):
     model = build_model(model_name, data_name, config).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
-
     trainer = Trainer(model, criterion, optimizer, device)
+
+    return trainer, train_loader, val_loader, test_loader
+
+
+def run_training(data_name, model_name, config, device):
+    print(f"\nRunning {model_name} on {data_name}")
+    trainer, train_loader, val_loader, test_loader = prepare_experiment(
+        data_name, model_name, config, device
+    )
+
     trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])
     dataset_config = config["DATASETS"][data_name]
     test_metrics = trainer.evaluate_metrics(test_loader, dataset_config["num_classes"])
