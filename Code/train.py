@@ -41,7 +41,7 @@ def main():
         in_channels=config["CHANNELS"],
         num_classes=config["NUM_CLASSES"],
         drop_rate=config.get("DROP_RATE", 0.5),
-        activation_str=None
+        activation_str=config.get("ACTIVATION", None)
     ).to(device)
 
     # CrossEntropyLoss is used for multi-class classification.
