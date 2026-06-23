@@ -1,13 +1,34 @@
 {
-  "_comment": "I added a simple config file so training settings can be changed from one place instead of hardcoding them in Python.",
+  "_comment": "Main settings for single runs and the full model/dataset benchmark.",
   "DATA": "cells",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
   "MODEL": "VGG16",
-  "CHANNELS": 3,
-  "NUM_CLASSES": 8,
+  "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+  "DATASETS": {
+    "cells": {
+      "channels": 3,
+      "num_classes": 8
+    },
+    "chest": {
+      "channels": 1,
+      "num_classes": 3
+    },
+    "lesions": {
+      "channels": 3,
+      "num_classes": 7
+    },
+    "orgs": {
+      "channels": 1,
+      "num_classes": 11
+    }
+  },
   "DROP_RATE": 0.5,
   "ACTIVATION": "ReLU",
   "LEARNING_RATE": 0.001,
-  "EPOCHS": 1
+  "EPOCHS": 1,
+  "VAL_SPLIT": 0.1,
+  "SEED": 42,
+  "RUN_ALL": false,
+  "OUTPUT_DIR": "results"
 }
