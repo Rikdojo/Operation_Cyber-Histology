@@ -63,7 +63,7 @@ def build_model(model_name, dataset_name, config):
 def run_training(data_name, model_name, config, device):
     print(f"\nRunning {model_name} on {data_name}")
     data_path = get_data_path(config)
-    train_loader, val_loader, _ = get_loaders(
+    train_loader, val_loader, test_loader = get_loaders(
         data=data_name,
         data_path=data_path,
         batch_size=config["BATCH_SIZE"],
@@ -76,7 +76,16 @@ def run_training(data_name, model_name, config, device):
 
     trainer = Trainer(model, criterion, optimizer, device)
     trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])
-    return trainer
+    dataset_config = config["DATASETS"][data_name]
+    test_metrics = trainer.evaluate_metrics(test_loader, dataset_config["num_classes"])
+
+    print("Test Metrics | "
+          f"Loss: {test_metrics['loss']:.4f} - "
+          f"Accuracy: {test_metrics['accuracy']:.2f}% - "
+          f"Precision: {test_metrics['precision']:.2f}% - "
+          f"Recall: {test_metrics['recall']:.2f}% - "
+          f"Macro F1: {test_metrics['macro_f1']:.2f}%")
+    return trainer, test_metrics
 
 
 def parse_args():
