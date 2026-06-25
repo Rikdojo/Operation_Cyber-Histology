@@ -11,16 +11,18 @@ def run_inference(model, test_loader, device):
     label_list = []
     prediction_list = []
     total_samples = 0
+    total_samples = len(test_loader.dataset)
 
     with torch.no_grad():
         for images, labels in test_loader:
-            labels = labels.squeeze(1).long()
+            images = images.to(device)
+            labels = labels.view(-1).long()
             outputs = model(images)
-            _, predicted = outputs.max(1)
+            prediction = outputs.argmax(dim=1)
 
-            total_samples += labels.size(0)
+            
             label_list.extend(labels.cpu().tolist())
-            prediction_list.extend(predicted.cpu().tolist())
+            prediction_list.extend(prediction.cpu().tolist())
 
     accuracy = accuracy_score(label_list, prediction_list)
     precision = precision_score(label_list, prediction_list, average="macro", zero_division=0)

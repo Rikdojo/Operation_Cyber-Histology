@@ -68,8 +68,6 @@ class AlexNet(nn.Module):
         super().__init__()
 
         drop_rate = kwargs.get("drop_rate", 0.5)
-        in_channels = kwargs.get("in_channels") # to get in_channels from the config file, because it is not a fixed value like 3 for RGB images, but can be changed for experimentation.
-        num_classes = kwargs.get("num_classes") # to get num_classes from the config file, because it is not a fixed value like 1000 for ImageNet, but can be changed for experimentation.
         
         self.features = nn.Sequential(
             nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),
