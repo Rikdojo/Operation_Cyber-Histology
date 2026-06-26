@@ -104,10 +104,12 @@ def main():
             "recall": test_metrics["recall"] * 100,
             "macro_f1": test_metrics["macro_f1"] * 100,
         })
-    write_csv(rows, output_path=f"results/test_metrics.csv")
+    output_dir = Path(config.get("OUTPUT_DIR", "results"))
+    if not output_dir.is_absolute():
+        output_dir = Path(__file__).resolve().parent.parent / output_dir
+    write_csv(rows, output_path=output_dir / "test_metrics.csv")
 
 
 if __name__ == "__main__":
     main()
-
 
