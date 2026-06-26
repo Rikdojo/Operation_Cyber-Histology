@@ -26,9 +26,8 @@
   "DROP_RATE": 0.5,
   "ACTIVATION": "ReLU",
   "LEARNING_RATE": 0.001,
-  "EPOCHS": 1,
+  "EPOCHS": 20,
   "VAL_SPLIT": 0.1,
   "SEED": 42,
   "OUTPUT_DIR": "results"
 }
-
