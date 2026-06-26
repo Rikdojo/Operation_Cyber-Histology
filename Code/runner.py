@@ -3,13 +3,11 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 import torch.optim as optim
-from utils import write_csv
 from data import get_loaders
 import models
-from fit import Trainer
+from trainer import Trainer
 import time
 from inference import run_inference
-from utils import write_csv
 
 def run_experiment(experiment_config):
 
@@ -20,7 +18,12 @@ def run_experiment(experiment_config):
     if not data_path.is_absolute():
         data_path = Path(__file__).resolve().parent.parent / data_path
 
-    train_loader, val_loader, test_loader = get_loaders(data=experiment_config["DATA"], data_path=data_path, batch_size=experiment_config["BATCH_SIZE"])
+    train_loader, val_loader, test_loader = get_loaders(
+        data=experiment_config["DATA"],
+        data_path=data_path,
+        batch_size=experiment_config["BATCH_SIZE"],
+        val_split=experiment_config.get("VAL_SPLIT", 0.1),
+    )
 
     if experiment_config["VARIANT"] == "Lightweight":
         class_name = f"Light{experiment_config['MODEL']}"
@@ -28,7 +31,12 @@ def run_experiment(experiment_config):
         class_name = experiment_config['MODEL']
 
     model_class = getattr(models, class_name)
-    model = model_class(in_channels=experiment_config["CHANNELS"], num_classes=experiment_config["NUM_CLASSES"], drop_rate=0.5, activation_str=experiment_config["ACTIVATION"]).to(device)
+    model = model_class(
+        in_channels=experiment_config["channels"],
+        num_classes=experiment_config["num_classes"],
+        drop_rate=experiment_config.get("DROP_RATE", 0.5),
+        activation_str=experiment_config["ACTIVATION"],
+    ).to(device)
     
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Trainable parameters: {num_params:,}")
@@ -41,7 +49,7 @@ def run_experiment(experiment_config):
         torch.cuda.reset_peak_memory_stats(device)
         torch.cuda.synchronize()
     start_time = time.perf_counter()
-    trainer.fit(train_loader, val_loader,experiment_config )
+    trainer.fit(train_loader, val_loader, epochs=experiment_config["EPOCHS"])
     if device.type == "cuda":
         torch.cuda.synchronize()
         peak_train_memory = torch.cuda.max_memory_allocated(device) / (1024 ** 2)

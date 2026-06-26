@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 
 
 def plot_losses(histories, title):
@@ -20,29 +20,23 @@ def plot_losses(histories, title):
     plt.tight_layout()
 
     Path("history").mkdir(exist_ok=True)
-
-    file_name = (
-        title.replace(" ", "_")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("/", "_")
-    )
-
+    file_name = title.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
     plt.savefig(f"history/{file_name}.png", dpi=300, bbox_inches="tight")
-    plt.show()
     plt.close()
 
 
-def write_csv(performance_list, csv_path="results.csv"):
-    file_exists = Path(csv_path).exists()
+def write_csv(rows, output_path="results.csv"):
+    if isinstance(rows, dict):
+        rows = [rows]
+    if not rows:
+        return
 
-    with open(csv_path, "a", newline="") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=performance_list.keys()
-        )
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = output_path.exists() and output_path.stat().st_size > 0
 
+    with open(output_path, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         if not file_exists:
             writer.writeheader()
-
-        writer.writerow(performance_list)
+        writer.writerows(rows)

@@ -1,39 +1,33 @@
 {
+  "RUN_ALL": false,
+  "DATA": "cells",
+  "DATA_PATH": "data",
+  "BATCH_SIZE": 32,
+  "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+  "VARIANTS": ["Baseline", "Lightweight"],
   "DATASETS": {
     "cells": {
-      "CHANNELS": 3,
-      "NUM_CLASSES": 8
+      "channels": 3,
+      "num_classes": 8
     },
     "chest": {
-      "CHANNELS": 1,
-      "NUM_CLASSES": 2
+      "channels": 1,
+      "num_classes": 3
     },
     "lesions": {
-      "CHANNELS": 3,
-      "NUM_CLASSES": 7
+      "channels": 3,
+      "num_classes": 7
     },
     "orgs": {
-      "CHANNELS": 1,
-      "NUM_CLASSES": 11
+      "channels": 1,
+      "num_classes": 11
     }
   },
-
-  "MODELS": [
-    "AlexNet",
-    "VGG16",
-    "ResNet18"
-  ],
-
-  "VARIANTS": [
-    "Baseline",
-    "Lightweight"
-  ],
-
-  "TRAINING": {
-    "DATA_PATH": "data",
-    "BATCH_SIZE": 32,
-    "LEARNING_RATE": 0.001,
-    "EPOCHS": 1,
-    "ACTIVATION": "ReLU"
-  }
+  "DROP_RATE": 0.5,
+  "ACTIVATION": "ReLU",
+  "LEARNING_RATE": 0.001,
+  "EPOCHS": 20,
+  "VAL_SPLIT": 0.1,
+  "SEED": 42,
+  "OUTPUT_DIR": "results"
 }
