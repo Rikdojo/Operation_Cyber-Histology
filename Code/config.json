@@ -5,6 +5,7 @@
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
   "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+  "MODEL": "Light_AlexNet",
   "DATASETS": {
     "cells": {
       "channels": 3,

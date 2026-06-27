@@ -62,41 +62,81 @@ class ResBlock(nn.Module):
         out = self.activation(out)
         return out
 
+
+def _alexnet_features(in_channels, add_adaptive_pool=False):
+    layers = [
+        nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),
+        nn.BatchNorm2d(48),
+        nn.ReLU(inplace=True),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        nn.Conv2d(48, 128, kernel_size=5, padding=2),
+        nn.BatchNorm2d(128),
+        nn.ReLU(inplace=True),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        nn.Conv2d(128, 256, kernel_size=3, padding=1),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(256, 256, kernel_size=3, padding=1),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(256, 192, kernel_size=3, padding=1),
+        nn.ReLU(inplace=True),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+    ]
+    if add_adaptive_pool:
+        layers.append(nn.AdaptiveAvgPool2d((1, 1)))
+    return nn.Sequential(*layers)
+
+
+def _mlp_head(drop_rate, dims, num_classes):
+    in_dim, hidden1, hidden2 = dims
+    return nn.Sequential(
+        nn.Dropout(p=drop_rate),
+        nn.Linear(in_dim, hidden1),
+        nn.ReLU(inplace=True),
+        nn.Dropout(p=drop_rate),
+        nn.Linear(hidden1, hidden2),
+        nn.ReLU(inplace=True),
+        nn.Linear(hidden2, num_classes),
+    )
+
+
+def _vgg_features(in_channels, last_block_out_channels):
+    return nn.Sequential(
+        VGGBlock(in_channels, 64, num_convs=2),
+        VGGBlock(64, 128, num_convs=2),
+        VGGBlock(128, 256, num_convs=3),
+        VGGBlock(256, 512, num_convs=3),
+        VGGBlock(512, last_block_out_channels, num_convs=3),
+    )
+
+
+def _resnet_stages(activation, stage4_out_channels):
+    stage1 = nn.Sequential(
+        ResBlock(64, 64, activation(inplace=True), stride=1),
+        ResBlock(64, 64, activation(inplace=True), stride=1),
+    )
+    stage2 = nn.Sequential(
+        ResBlock(64, 128, activation(inplace=True), stride=2),
+        ResBlock(128, 128, activation(inplace=True), stride=1),
+    )
+    stage3 = nn.Sequential(
+        ResBlock(128, 256, activation(inplace=True), stride=2),
+        ResBlock(256, 256, activation(inplace=True), stride=1),
+    )
+    stage4 = nn.Sequential(
+        ResBlock(256, stage4_out_channels, activation(inplace=True), stride=2),
+        ResBlock(stage4_out_channels, stage4_out_channels, activation(inplace=True), stride=1),
+    )
+    return stage1, stage2, stage3, stage4
+
 class AlexNet(nn.Module):
     """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
 
         drop_rate = kwargs.get("drop_rate", 0.5)
-        
-        self.features = nn.Sequential(
-            nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),
-            nn.BatchNorm2d(48),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            
-            nn.Conv2d(48, 128, kernel_size=5, padding=2),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 192, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-        )
-        
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=drop_rate),
-            nn.Linear(3072, 1024),      #change the first linear layer's input features from 2048 to 192 *4*4=3072
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=drop_rate),
-            nn.Linear(1024, 1024),
-            nn.ReLU(inplace=True),
-            nn.Linear(1024, num_classes))
+
+        self.features = _alexnet_features(in_channels, add_adaptive_pool=False)
+        self.classifier = _mlp_head(drop_rate, dims=(3072, 1024, 1024), num_classes=num_classes)
 
     def forward(self, x):
         x = self.features(x)
@@ -111,14 +151,8 @@ class VGG16(nn.Module):
 
         drop_rate = kwargs.get("drop_rate", 0.5)
 
-        self.features = nn.Sequential(
-            VGGBlock(in_channels, 64, num_convs=2),
-            VGGBlock(64, 128, num_convs=2),
-            VGGBlock(128, 256, num_convs=3),
-            VGGBlock(256, 512, num_convs=3),
-            VGGBlock(512, 512, num_convs=3)
-        )
-        
+        self.features = _vgg_features(in_channels, last_block_out_channels=512)
+
         self.classifier = nn.Sequential(
             nn.Linear(2048, 1024),
             nn.ReLU(inplace=True),
@@ -148,26 +182,99 @@ class ResNet18(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.activation = activation(inplace=True)
-        
-        self.stage1 = nn.Sequential(
-            ResBlock(64, 64, activation(inplace=True), stride=1),
-            ResBlock(64, 64, activation(inplace=True), stride=1)
-        )
-        self.stage2 = nn.Sequential(
-            ResBlock(64, 128, activation(inplace=True), stride=2),          
-            ResBlock(128, 128, activation(inplace=True), stride=1)
-        )
-        self.stage3 = nn.Sequential(
-            ResBlock(128, 256, activation(inplace=True), stride=2),
-            ResBlock(256, 256, activation(inplace=True), stride=1)
-        )
-        self.stage4 = nn.Sequential(
-            ResBlock(256, 512, activation(inplace=True), stride=2),
-            ResBlock(512, 512, activation(inplace=True), stride=1)
+
+        self.stage1, self.stage2, self.stage3, self.stage4 = _resnet_stages(
+            activation,
+            stage4_out_channels=512,
         )
         
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Linear(512, num_classes)
+
+    def forward(self, x):
+        out = self.activation(self.bn1(self.conv1(x)))
+        out = self.stage1(out)
+        out = self.stage2(out)
+        out = self.stage3(out)
+        out = self.stage4(out)
+        out = self.avgpool(out)
+
+        out = torch.flatten(out, 1)
+        return self.classifier(out)
+
+
+# AlexnetはflattenのところをGlobalAvegraPooling に変換がexpensive 
+
+
+
+
+class Light_AlexNet(nn.Module):
+    """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        drop_rate = kwargs.get("drop_rate", 0.5)
+
+        self.features = _alexnet_features(in_channels, add_adaptive_pool=True)
+        self.classifier = _mlp_head(drop_rate, dims=(192, 128, 64), num_classes=num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        return self.classifier(x)
+    
+
+
+
+class Light_VGG16(nn.Module):
+    """VGG16 in C configuration of Simonyan & Zisserman, (2014) adapted for smaller inputs."""
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        drop_rate = kwargs.get("drop_rate", 0.5)
+
+        self.features = _vgg_features(in_channels, last_block_out_channels=256)
+
+        self.classifier = nn.Sequential(
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=drop_rate),
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=drop_rate),
+            nn.Linear(256, num_classes)
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        return self.classifier(x)
+
+
+
+
+
+class Light_ResNet18(nn.Module):
+    """ResNet18 (He et al., 2016) adapted for smaller inputs.
+    
+    activation - flexible activation function to allow experimentation (e.g., ReLU, LeakyReLU, etc.)
+    """
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        activation = getattr(nn, kwargs.get("activation_str", activation_str) or activation_str)
+
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.activation = activation(inplace=True)
+
+        self.stage1, self.stage2, self.stage3, self.stage4 = _resnet_stages(
+            activation,
+            stage4_out_channels=256,
+        )
+        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Linear(256, num_classes)
 
     def forward(self, x):
         out = self.activation(self.bn1(self.conv1(x)))

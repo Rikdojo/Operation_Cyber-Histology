@@ -49,7 +49,7 @@ def write_csv(rows, output_path):
         "runtime_seconds"
     ]
     
-    with open(output_path, "a", newline="") as f:
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f,fieldnames=rows[0].keys())
 
         writer.writeheader()
