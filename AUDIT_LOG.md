@@ -37,6 +37,16 @@ Audited files:
 | `Code/inference.py` | Macro metrics could break on classes with no predicted samples. | Classification metrics did not guard against undefined precision/recall cases. | Used `zero_division=0` for macro precision, recall, and F1 calculation. | `4ac2bf0` |
 | `Code/utils.py` | Results output could fail if the target folder did not exist. | CSV writing assumed the parent output directory was already present. | Created the output directory before writing metrics. | `2de48be` |
 
+## Task 2 Green Initiative Audit Additions
+
+| File name | Problem manifestation | Root cause | Correction implemented | Git commit hash |
+|---|---|---|---|---|
+| `Code/models.py` | Task 2 lightweight variants could not run because `LightAlexNet`, `LightVGG16`, and `LightResNet18` were invalid empty stubs. | The classes contained placeholder `return` statements instead of real model definitions. | Implemented three valid lightweight architectures with reduced channel counts, adaptive pooling, and the same input/output contract as the baseline models. | `e7a5bde` |
+| `Code/runner.py` | Green Initiative experiments did not produce a clean efficiency matrix for comparison. | The experiment runner mixed baseline and lightweight naming conventions and returned inconsistent metric keys. | Standardized baseline/lightweight model resolution and returned one row per experiment with model variant, parameter count, runtime, latency, memory, and classification metrics. | `0a1647f` |
+| `Code/run_green.py` | There was no direct command to run the full Task 2 green benchmark matrix. | Task 2 orchestration logic existed only as helper code and was not exposed as a clear reproducible entry point. | Added `Code/run_green.py` with dry-run support, dataset/model/variant filters, epoch override, and CSV output to `results/green_metrics.csv`. | `0a1647f` |
+| `Code/inference.py` | Task 2 could not quantify inference efficiency. | Inference only needed accuracy metrics for Task 1 and did not expose latency or peak memory values. | Added inference timing, latency per sample, and CUDA peak inference memory reporting while preserving accuracy, precision, recall, and macro F1. | `e7a5bde` |
+| `README.md` / `REPORT.md` | Task 2 workflow and green-analysis expectations were not documented. | Documentation still focused mainly on Task 1 reconstruction and benchmark reporting. | Added Green Initiative run commands, output file description, parameter reduction table, and instructions for completing the final green analysis after GPU benchmarking. | `0a1647f` |
+
 ## Current Open Risks
 
 | Area | Risk | Recommendation |
