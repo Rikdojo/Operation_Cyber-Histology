@@ -141,6 +141,42 @@ Metrics are appended to:
 results/test_metrics.csv
 ```
 
+## Green Initiative Benchmark
+
+Task 2 adds lightweight model variants and a green benchmark runner.
+
+Lightweight models:
+
+- `LightAlexNet`
+- `LightVGG16`
+- `LightResNet18`
+
+Check the planned green experiments without training:
+
+```bash
+python3 Code/run_green.py --dry-run
+```
+
+Run one quick green comparison:
+
+```bash
+python3 Code/run_green.py --datasets cells --models AlexNet --variants Baseline,Lightweight --epochs 1
+```
+
+Run the full green benchmark matrix:
+
+```bash
+python3 Code/run_green.py
+```
+
+Green metrics are written to:
+
+```text
+results/green_metrics.csv
+```
+
+The green runner logs accuracy, precision, recall, macro F1, parameter count, training runtime, inference latency per sample, and CUDA peak memory when running on a CUDA GPU such as Colab T4.
+
 ## Verification Commands
 
 Check that the Python files compile:

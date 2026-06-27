@@ -87,19 +87,72 @@ These recommendations are preliminary because the full matrix is not yet complet
 
 ## Green Initiative Notes
 
-The current Task 1 branch restores the baseline model registry rather than adding a new green-optimized architecture. From an efficiency perspective:
+Task 2 adds green-optimized lightweight versions of the restored model families:
 
-- `AlexNet` is likely the fastest of the three current models.
-- `VGG16` is likely the heaviest due to repeated high-channel convolution blocks and dense classifier layers.
-- `ResNet18` may offer a better accuracy/compute trade-off because residual blocks support deeper feature learning without the same dense-classifier footprint.
+- `LightAlexNet`
+- `LightVGG16`
+- `LightResNet18`
 
-For the Green Initiative task, the next implementation should add:
+These models keep the same input/output contract as the baseline models, but reduce channel counts, remove large dense classifier blocks, and use adaptive average pooling before the final classifier.
 
-- training runtime per experiment
-- inference latency per sample
-- peak memory usage
-- a smaller model variant for comparison
-- a final table comparing accuracy against runtime and memory cost
+### Parameter Reduction
+
+| Model family | Baseline parameters | Lightweight parameters | Reduction |
+|---|---:|---:|---:|
+| AlexNet | 5,693,544 | 54,728 | 99.04% |
+| VGG16 | 12,631,624 | 242,568 | 98.08% |
+| ResNet18 | 11,172,936 | 308,392 | 97.24% |
+
+This satisfies the architectural downscaling requirement: each lightweight model is drastically smaller than its baseline counterpart.
+
+### Green Benchmark Runner
+
+Run the full green comparison matrix:
+
+```bash
+python3 Code/run_green.py
+```
+
+Run a small sanity check first:
+
+```bash
+python3 Code/run_green.py --dry-run
+python3 Code/run_green.py --datasets cells --models AlexNet --variants Baseline,Lightweight --epochs 1
+```
+
+The runner writes:
+
+```text
+results/green_metrics.csv
+```
+
+Logged fields include:
+
+- dataset
+- model
+- variant
+- model class
+- epochs
+- parameter count
+- training runtime in seconds
+- peak training memory in MB on CUDA
+- accuracy
+- precision
+- recall
+- macro F1
+- inference time in seconds
+- latency per sample
+- peak inference memory in MB on CUDA
+
+### Green Analysis To Complete After Training
+
+After running the full benchmark on a CUDA GPU, update this section with the observed `green_metrics.csv` results. The final recommendation should choose the model that gives the best balance of accuracy, parameter reduction, runtime, latency, and memory use.
+
+Initial expectation:
+
+- `LightAlexNet` should be the fastest and smallest.
+- `LightResNet18` is the most promising lightweight accuracy/efficiency compromise because it keeps residual connections.
+- `LightVGG16` is a useful middle ground, but may be less efficient than `LightResNet18` if accuracy is similar.
 
 ## Current Limitations
 
@@ -107,8 +160,8 @@ The current report is not yet a final assignment benchmark report because:
 
 - only `cells` + `AlexNet` has recorded local metrics
 - no complete 12-run dataset/model benchmark matrix is present
-- no runtime, latency, or memory profiling is currently recorded
-- no green-optimized model has been added yet
+- green runtime, latency, and memory profiling must still be run on the final GPU environment
+- CPU runs cannot report CUDA peak memory, so final memory values should be collected on Colab T4 or another CUDA GPU
 
 ## Reproducibility Checklist
 
@@ -118,7 +171,9 @@ Before final submission:
 - Confirm all four `.pt` files exist in `data/`.
 - Run syntax checks.
 - Run the full benchmark matrix.
+- Run the green benchmark matrix with `python3 Code/run_green.py`.
 - Replace the pending matrix above with final metrics.
+- Add the final `results/green_metrics.csv` summary to the Green Initiative section.
 - Commit `README.md`, `AUDIT_LOG.md`, and `REPORT.md`.
 
 ## References
