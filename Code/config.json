@@ -4,8 +4,9 @@
   "DATA": "cells",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
-  "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+  "MODELS": ["AlexNet", "VGG16", "ResNet18","Light_AlexNet", "Light_VGG16", "Light_ResNet18"],
   "MODEL": "Light_AlexNet",
+  "VALIDATION": "task1",
   "DATASETS": {
     "cells": {
       "channels": 3,
