@@ -77,7 +77,7 @@ def main():
     for data_name, model_name in get_run_list(config, run_all=run_all):
         print(f"\nRunning {model_name} on {data_name}")
         
-        train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"))
+        train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"), seed=config.get("SEED", 42))
         model_class = getattr(models, model_name)
         model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
         

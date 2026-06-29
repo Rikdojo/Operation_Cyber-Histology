@@ -7,7 +7,7 @@ import torch
 from pathlib import Path
 from torch.utils.data import TensorDataset, DataLoader
 
-def get_loaders(data, data_path, batch_size, val_split=0.1):
+def get_loaders(data, data_path, batch_size, val_split=0.1, seed=42):
 
     d_path = Path(data_path) / f"{data}.pt"
     data_dict = torch.load(d_path)
@@ -16,17 +16,23 @@ def get_loaders(data, data_path, batch_size, val_split=0.1):
     val_size = int(total_samples * val_split)
     val_start = total_samples - val_size
 
+    g = torch.Generator().manual_seed(seed)
+    data_index = torch.randperm(total_samples, generator=g)
+    train_idx = data_index[:val_start]
+    val_idx   = data_index[val_start:]
+
     train_data = data_dict['train_images'][:val_start] # add this line to exclude validation data in training data 
     train_labels = data_dict['train_labels'][:val_start]
     val_data = data_dict['train_images'][val_start:]
     val_labels = data_dict['train_labels'][val_start:]
 
-    mean = train_data.mean() # normalize the image data with z-score normalization using training statistics for all splits to avoid validation/test leakage.
-    std = train_data.std()
+  
+    mean = train_data.mean(dim=(0, 2, 3), keepdim=True)
+    std = train_data.std(dim=(0, 2, 3), keepdim=True).clamp_min(1e-8)
     train_data = (train_data - mean) / std
     val_data = (val_data - mean) / std
-    test_data = (data_dict['test_images'] - mean) / std # normalize test data with the same mean and std as the training data.
-    
+    test_data = (data_dict["test_images"] - mean) / std
+
     train_dataset = TensorDataset(train_data, train_labels)
     val_dataset = TensorDataset(val_data, val_labels)
     test_dataset = TensorDataset(test_data, data_dict['test_labels']) 
