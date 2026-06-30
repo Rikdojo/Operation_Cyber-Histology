@@ -33,28 +33,17 @@ def plot_losses(histories, title):
     plt.close()
 
 
-def write_csv(rows, output_path):
+def write_csv(rows,output_path):
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
-        "dataset",
-        "model",
-        "epochs",
-        "test_loss",
-        "accuracy",
-        "precision",
-        "recall",
-        "macro_f1",
-        "runtime_seconds"
-    ]
+
+    if not rows: 
+        print(f"Warning: no results to write to {output_path}")
+        return
     
-    with open(output_path, "w", newline="") as f:
-        writer = csv.DictWriter(f,fieldnames=rows[0].keys())
-
-        writer.writeheader()
-
-        writer.writerows(rows)
-
-
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+         writer = csv.DictWriter(f, fieldnames=rows[0].keys()) 
+         writer.writeheader() 
+         writer.writerows(rows)
 

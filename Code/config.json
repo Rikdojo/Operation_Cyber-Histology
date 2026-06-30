@@ -4,9 +4,8 @@
   "DATA": "cells",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
-  "MODELS": ["AlexNet", "VGG16", "ResNet18","Light_AlexNet", "Light_VGG16", "Light_ResNet18"],
-  "MODEL": "Light_AlexNet",
-  "VALIDATION": "task1",
+  "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+  "MODEL": "AlexNet",
   "DATASETS": {
     "cells": {
       "channels": 3,
@@ -31,5 +30,22 @@
   "EPOCHS": 20,
   "VAL_SPLIT": 0.1,
   "SEED": 42,
-  "OUTPUT_DIR": "results"
+  "OUTPUT_DIR": "results",
+
+  "task2":{
+    "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+    "MODES":["Baseline", "Light"]
+  },
+
+  "task3":{
+    "DATA": "organs",
+    "channels": 1,
+    "num_classes": 11,
+    "FROM_DATA": {"DATA": "chest", "channels": 1, "num_classes": 3},
+    "MODEL":  "Light_VGG16",
+    "MODES":["scratch", "pretrained", "finetune"],
+    "CHECKPOINT": "results/Light_VGG16_orgs.pt"
+
+  }  
 }
+

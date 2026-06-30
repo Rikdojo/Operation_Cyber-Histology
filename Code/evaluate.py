@@ -2,7 +2,7 @@ import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-def run_inference(model, test_loader, device):
+def evaluate_model(model, test_loader, device):
     model.eval()
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
@@ -34,12 +34,6 @@ def run_inference(model, test_loader, device):
     print(f"Macro Recall: {recall:.4f}")
     print(f"Macro F1: {macro_f1:.4f}")
 
-   
-    test_metrics = {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "macro_f1": macro_f1   
-    }
-    return test_metrics
+  
+    return accuracy, precision, recall, macro_f1
 
