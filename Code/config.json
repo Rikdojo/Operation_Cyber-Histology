@@ -31,6 +31,7 @@
   "VAL_SPLIT": 0.1,
   "SEED": 42,
   "OUTPUT_DIR": "results",
+  "PATIENCE": 7,
 
   "task2":{
     "MODELS": ["AlexNet", "VGG16", "ResNet18"],
@@ -44,7 +45,7 @@
     "FROM_DATA": {"DATA": "chest", "channels": 1, "num_classes": 3},
     "MODEL":  "Light_VGG16",
     "MODES":["scratch", "pretrained", "finetune"],
-    "CHECKPOINT": "results/Light_VGG16_orgs.pt"
+    "CHECKPOINT": "results/model/Light_VGG16_orgs.pt"
 
   }  
 }
