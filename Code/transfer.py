@@ -1,5 +1,4 @@
 from pathlib import Path
-from xml.parsers.expat import model
 import torch
 import torch.nn as nn
 import models
@@ -25,7 +24,6 @@ def build_pretrained_model(config, mode, device):
     checkpoint = torch.load(config["task3"]["CHECKPOINT"], map_location=device)
     model.load_state_dict(checkpoint)
 
-    print(model)
     # freeze parameters 
 
     #adjust classifier for new number of classes

@@ -7,6 +7,7 @@ from data import get_loaders
 from trainer import Trainer
 import time
 from evaluate import evaluate_model
+from utils import plot_losses
 
 
 def start_gpu_memory_measurement(device):
@@ -40,7 +41,8 @@ def run_experiment(model,config, model_name,data_name, device):
     trainer = Trainer(model, criterion, optimizer, device)
     start_gpu_memory_measurement(device)
     start_time = time.perf_counter()
-    trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])        
+    
+    train_losses, val_losses = trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"], patience=config["PATIENCE"])      
     peak_train_memory = get_peak_gpu_memory_mb(device)
            
     training_time = time.perf_counter() - start_time
@@ -57,13 +59,20 @@ def run_experiment(model,config, model_name,data_name, device):
     inference_time = time.perf_counter() - inference_start_time
     print(f"Total inference time: {inference_time:.2f} seconds")
 
-    checkpoint_dir = Path(config["OUTPUT_DIR"])
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-   
-    
-    checkpoint_path = checkpoint_dir / f"{model_name}_{data_name}.pt"
-    
-    torch.save(model.state_dict(), checkpoint_path)
+    output_dir = Path(config.get("OUTPUT_DIR", "results"))
+    if not output_dir.is_absolute():
+        output_dir = Path(__file__).resolve().parent.parent / output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+
+
+
+    model_dir = output_dir / "model"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model_path = model_dir / f"{model_name}_{data_name}.pt"
+
+    torch.save(model.state_dict(), model_path)
+    plot_losses({"losses": (train_losses, val_losses)}, title=f"Training and Validation loss result for {model_name} on {data_name}", out_path = output_dir)
 
     test_metrics = {
         "num_params": num_params,
