@@ -51,7 +51,7 @@ Audited files:
 
 | File name | Problem manifestation | Root cause | Correction implemented | Git commit hash |
 |---|---|---|---|---|
-| `Code/config.json` | The scarce `organs` experiment had no central settings for source data, target data, model, modes, or checkpoint path. | Task 3 requires a different training setup than the normal dataset/model matrix. | Added a `TASK3` configuration block for `chest` to `organs` transfer with `scratch`, `frozen`, and `finetune` modes. | `5f4255e` |
+| `Code/config.json` | The scarce `organs` experiment had no central settings for source data, target data, model, modes, or checkpoint path. | Task 3 requires a different training setup than the normal dataset/model matrix. | Added a `TASK3` configuration block for `chest` to `organs` transfer with `scratch`, `pretrained`, and `finetune` modes. | `5f4255e` |
 | `Code/run_task3.py` | The project could not compare ordinary `organs` training against transferred feature knowledge. | Existing runners only handled baseline model training and Task 2 green comparisons. | Added a small Task 3 runner that trains a source checkpoint on `chest`, adapts the classifier for `organs`, and logs all transfer modes to CSV. | `5f4255e` |
 | `README.md` / `REPORT.md` | The scarce-data workflow was not documented for final reproduction. | Task 3 had no run command, output description, or report table. | Added Task 3 commands, output files, method description, and a result table ready for final metrics. | `5f4255e` |
 | `Code/data.py` | Validation data was always the final slice of the training file. | The train/validation split used tensor order instead of a seeded random permutation. | Added a seeded random split before creating train and validation tensors. | `5f4255e` |

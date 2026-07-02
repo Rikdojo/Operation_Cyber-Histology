@@ -4,7 +4,7 @@ Task 3: scarce organs data with simple transfer learning.
 The idea is:
 1. learn useful low-level features from chest,
 2. reuse them for the smaller organs dataset,
-3. compare scratch, frozen transfer, and full fine-tuning.
+3. compare scratch, pretrained feature transfer, and full fine-tuning.
 """
 import argparse
 import json
@@ -71,10 +71,11 @@ def replace_classifier(model, num_classes, device):
 
 
 def set_trainable_parts(model, mode):
+    feature_transfer_only = mode in {"pretrained", "frozen"}
     for parameter in model.parameters():
-        parameter.requires_grad = mode != "frozen"
+        parameter.requires_grad = not feature_transfer_only
 
-    if mode == "frozen":
+    if feature_transfer_only:
         for parameter in model.classifier.parameters():
             parameter.requires_grad = True
 
@@ -222,6 +223,8 @@ def main():
     output_path = Path(config.get("OUTPUT_DIR", "results")) / "task3_metrics.csv"
     if not output_path.is_absolute():
         output_path = Path(__file__).resolve().parent.parent / output_path
+    if output_path.exists():
+        output_path.unlink()
     write_csv(rows, output_path=output_path)
     print(f"\nSaved Task 3 metrics to {output_path}")
 

@@ -160,7 +160,9 @@ Initial expectation:
 
 ## Task 3: Organs Scarce-Data Strategy
 
-The new `organs` dataset has 11 classes and only 500 training images. A normal scratch run can overfit quickly, so Task 3 compares ordinary training against transfer from the larger grayscale `chest` dataset.
+The new `organs` dataset has 11 classes and only 500 training images. This is the Task 3 target dataset. The older `orgs` dataset is much larger and belongs to the original benchmark matrix, so using `orgs.pt` for Task 3 would make the scarce-data problem too easy and would not match the assignment wording.
+
+A normal scratch run can overfit quickly, so Task 3 compares ordinary training against transfer from the larger grayscale `chest` dataset.
 
 The implemented command is:
 
@@ -173,7 +175,7 @@ The runner first trains `LightVGG16` on `chest` and saves the checkpoint. Then i
 | Mode | What it means | Why it is useful |
 |---|---|---|
 | `scratch` | Train `LightVGG16` on `organs` from random initialization. | Baseline for the scarce-data problem. |
-| `frozen` | Load chest features, replace the classifier, and train only the classifier. | Tests whether chest features transfer without overfitting the small dataset. |
+| `pretrained` | Load chest features, replace the classifier, and train only the classifier. | Tests whether chest features transfer without overfitting the small dataset. |
 | `finetune` | Load chest features, replace the classifier, and train the whole model. | Lets the model adapt all features to `organs`. |
 
 Task 3 writes its metrics to:
@@ -189,16 +191,22 @@ Final local CPU run from `results/task3_metrics.csv`:
 | Dataset | Model | Mode | Epochs | Trainable params | Accuracy | Precision | Recall | Macro F1 |
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | `organs` | `LightVGG16` | `scratch` | 20 | 242,379 | 56.00% | 56.03% | 47.71% | 46.28% |
-| `organs` | `LightVGG16` | `frozen` | 20 | 1,419 | 28.00% | 9.67% | 22.19% | 13.46% |
+| `organs` | `LightVGG16` | `pretrained` | 20 | 1,419 | 28.00% | 9.67% | 22.19% | 13.46% |
 | `organs` | `LightVGG16` | `finetune` | 20 | 242,379 | 57.50% | 61.58% | 52.55% | 50.87% |
 
 ### Task 3 Recommendation
 
 The best result in this run is `finetune`, with 57.50% accuracy and 50.87% macro F1. It passes the 40% target for the scarce `organs` dataset.
 
-`scratch` is also above target at 56.00%, but `finetune` is slightly better on accuracy, precision, recall, and macro F1. The frozen feature extractor is much weaker, so the chest features are useful only as a starting point; the model still needs to adapt its convolutional filters to the organ images.
+`scratch` is also above target at 56.00%, but `finetune` is slightly better on accuracy, precision, recall, and macro F1. The pretrained feature-extractor mode is much weaker, so the chest features are useful only as a starting point; the model still needs to adapt its convolutional filters to the organ images.
 
 I did not use a completely new external pretrained model for this task. The assignment asks to exploit the existing image profiles, and `chest` is already grayscale medical image data with the same image size as `organs`. That makes the transfer comparison easier to explain and avoids adding a new external dependency.
+
+### Data-Scarcity Post-Mortem
+
+The 500-image training set is small for 11 classes, so the validation split has only 50 images. This makes the exact percentages noisy, but the pattern is still useful: classifier-only transfer is not enough, while full fine-tuning gives the best macro F1.
+
+The practical recommendation is to use `finetune` now and rerun the benchmark with more seeds when final compute is available. If more organ data are collected later, the next improvement should be light data augmentation before trying a larger model.
 
 ## Current Limitations
 

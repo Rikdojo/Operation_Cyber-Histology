@@ -9,7 +9,7 @@
     "SOURCE_DATA": "chest",
     "TARGET_DATA": "organs",
     "MODEL": "LightVGG16",
-    "MODES": ["scratch", "frozen", "finetune"],
+    "MODES": ["scratch", "pretrained", "finetune"],
     "SOURCE_EPOCHS": 8,
     "TARGET_EPOCHS": 20,
     "CHECKPOINT": "results/task3_chest_lightvgg16.pt"

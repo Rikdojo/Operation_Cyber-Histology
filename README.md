@@ -207,7 +207,9 @@ The default setup in `Code/config.json` uses:
 - source dataset: `chest`
 - target dataset: `organs`
 - model: `LightVGG16`
-- modes: `scratch`, `frozen`, `finetune`
+- modes: `scratch`, `pretrained`, `finetune`
+
+The assignment's new scarce dataset is `organs.pt`. The older `orgs.pt` file is still part of the main restored benchmark matrix, but Task 3 should use `organs.pt`.
 
 Run the Task 3 benchmark:
 
