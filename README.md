@@ -14,6 +14,7 @@ Supported datasets:
 - `chest`
 - `lesions`
 - `orgs`
+- `organs` for the Task 3 scarce-data experiment
 
 ## Repository Layout
 
@@ -24,6 +25,8 @@ Supported datasets:
 |   +-- data.py          # Dataset loading, train/validation split, normalization
 |   +-- inference.py     # Test-set inference and classification metrics
 |   +-- models.py        # AlexNet, VGG16, and ResNet18 definitions
+|   +-- run_green.py     # Task 2 green benchmark runner
+|   +-- run_task3.py     # Task 3 organs transfer benchmark runner
 |   +-- train.py         # Main training entry point
 |   +-- trainer.py       # Training and validation loop
 |   +-- utils.py         # CSV/reporting helpers
@@ -69,6 +72,7 @@ data/
 +-- chest.pt
 +-- lesions.pt
 +-- orgs.pt
++-- organs.pt
 ```
 
 Each `.pt` file must contain:
@@ -95,6 +99,11 @@ Important fields:
 | `DATASETS` | Dataset-specific channel and class counts |
 | `MODELS` | Supported model names |
 | `VAL_SPLIT` | Fraction of training data reserved for validation |
+| `PATIENCE` | Early-stopping patience based on validation loss |
+| `CHECKPOINT_DIR` | Folder for best validation-loss model files |
+| `HISTORY_DIR` | Folder for train/validation loss plots |
+
+Data loading uses a seeded random train/validation split and training-only per-channel normalization.
 
 ## Training
 
@@ -141,6 +150,18 @@ Metrics are appended to:
 results/test_metrics.csv
 ```
 
+Best model checkpoints are saved under:
+
+```text
+results/models/
+```
+
+Loss-curve PNG files are saved under:
+
+```text
+results/history/
+```
+
 ## Green Initiative Benchmark
 
 Task 2 adds lightweight model variants and a green benchmark runner.
@@ -177,12 +198,55 @@ results/green_metrics.csv
 
 The green runner logs accuracy, precision, recall, macro F1, parameter count, training runtime, inference latency per sample, and CUDA peak memory when running on a CUDA GPU such as Colab T4.
 
+## Task 3 Organs Transfer Benchmark
+
+Task 3 keeps the Task 2 lightweight model work and adds a small transfer-learning experiment for the scarce `organs` data.
+
+The default setup in `Code/config.json` uses:
+
+- source dataset: `chest`
+- target dataset: `organs`
+- model: `LightVGG16`
+- modes: `scratch`, `frozen`, `finetune`
+
+Run the Task 3 benchmark:
+
+```bash
+python3 Code/run_task3.py
+```
+
+For a quick local check, reduce only the target training epochs:
+
+```bash
+python3 Code/run_task3.py --epochs 1
+```
+
+If the source checkpoint should be trained again:
+
+```bash
+python3 Code/run_task3.py --force-source
+```
+
+Task 3 metrics are written to:
+
+```text
+results/task3_metrics.csv
+```
+
+Current local Task 3 result: `LightVGG16` fine-tuning from `chest` to `organs` reached 57.50% accuracy after 20 target epochs.
+
+The source checkpoint is saved to:
+
+```text
+results/task3_chest_lightvgg16.pt
+```
+
 ## Verification Commands
 
 Check that the Python files compile:
 
 ```bash
-python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/inference.py Code/utils.py
+python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/inference.py Code/utils.py Code/run_green.py Code/run_task3.py
 ```
 
 Run a short smoke training job:
@@ -201,9 +265,10 @@ import models
 
 datasets = {
     "cells": (3, 8),
-    "chest": (1, 3),
+    "chest": (1, 2),
     "lesions": (3, 7),
     "orgs": (1, 11),
+    "organs": (1, 11),
 }
 
 for dataset, (channels, classes) in datasets.items():
@@ -219,7 +284,7 @@ PY
 
 ## Current Benchmark Status
 
-The current local smoke benchmark for `cells` + `AlexNet` reached 89.62% test accuracy after 3 epochs. The assignment target for `cells` is 90%, so this result is close but should be rerun with more epochs before final submission.
+The current local smoke benchmark from the earlier Task 1/2 work reached 89.62% test accuracy for `cells` + `AlexNet` after 3 epochs. The assignment target for `cells` is 90%, so this result is close but should be rerun with more epochs before final submission.
 
 The full benchmark matrix across all four datasets and all three models must be completed before final grading. See `REPORT.md` for the current benchmark table and remaining work.
 
@@ -230,6 +295,7 @@ Before submitting, confirm that:
 - `README.md`, `AUDIT_LOG.md`, and `REPORT.md` are committed.
 - The full dataset/model benchmark matrix has been run.
 - `REPORT.md` contains final metrics for all required permutations.
+- `results/task3_metrics.csv` has been generated for the organs transfer comparison.
 - The final branch required by the course contains the production-ready code and documentation.
 
 ## References

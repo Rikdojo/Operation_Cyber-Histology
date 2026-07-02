@@ -7,25 +7,40 @@ import torch
 from pathlib import Path
 from torch.utils.data import TensorDataset, DataLoader
 
-def get_loaders(data, data_path, batch_size, val_split=0.1):
+def normalize_with_train_stats(train_data, val_data, test_data):
+    mean = train_data.mean(dim=(0, 2, 3), keepdim=True)
+    std = train_data.std(dim=(0, 2, 3), keepdim=True).clamp_min(1e-6)
+    return (
+        (train_data - mean) / std,
+        (val_data - mean) / std,
+        (test_data - mean) / std,
+    )
+
+
+def get_loaders(data, data_path, batch_size, val_split=0.1, seed=42):
 
     d_path = Path(data_path) / f"{data}.pt"
     data_dict = torch.load(d_path)
 
     total_samples = data_dict['train_images'].shape[0]
-    val_size = int(total_samples * val_split)
-    val_start = total_samples - val_size
+    val_size = max(1, int(total_samples * val_split))
+    val_size = min(val_size, total_samples - 1)
+    generator = torch.Generator().manual_seed(seed)
+    indices = torch.randperm(total_samples, generator=generator)
 
-    train_data = data_dict['train_images'][:val_start] # add this line to exclude validation data in training data 
-    train_labels = data_dict['train_labels'][:val_start]
-    val_data = data_dict['train_images'][val_start:]
-    val_labels = data_dict['train_labels'][val_start:]
+    train_idx = indices[:-val_size]
+    val_idx = indices[-val_size:]
 
-    mean = train_data.mean() # normalize the image data with z-score normalization using training statistics for all splits to avoid validation/test leakage.
-    std = train_data.std()
-    train_data = (train_data - mean) / std
-    val_data = (val_data - mean) / std
-    test_data = (data_dict['test_images'] - mean) / std # normalize test data with the same mean and std as the training data.
+    train_data = data_dict['train_images'][train_idx]
+    train_labels = data_dict['train_labels'][train_idx]
+    val_data = data_dict['train_images'][val_idx]
+    val_labels = data_dict['train_labels'][val_idx]
+
+    train_data, val_data, test_data = normalize_with_train_stats(
+        train_data,
+        val_data,
+        data_dict['test_images'],
+    )
     
     train_dataset = TensorDataset(train_data, train_labels)
     val_dataset = TensorDataset(val_data, val_labels)

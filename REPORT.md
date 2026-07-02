@@ -2,7 +2,9 @@
 
 ## Executive Summary
 
-The reconstructed pipeline can now train and evaluate the recovered convolutional classifiers through a shared configuration file. The current `integration` branch has been smoke-tested on `cells` + `AlexNet`, and the model reaches 89.62% test accuracy after 3 epochs on CPU.
+The reconstructed pipeline can now train and evaluate the recovered convolutional classifiers through a shared configuration file. This Task 3 folder starts from the `task2-Areej` work and adds a transfer-learning experiment for the scarce `organs` dataset.
+
+The earlier smoke benchmark reached 89.62% test accuracy for `cells` + `AlexNet` after 3 epochs on CPU.
 
 This is close to the assignment's 90% minimum for `cells`, but it is not yet a complete final benchmark submission. The full benchmark matrix must still be run for all four datasets and all three models.
 
@@ -48,10 +50,12 @@ Because full CPU training is slow, run the benchmark on CUDA if available. On th
 The current pipeline uses:
 
 - deterministic Python/PyTorch seeding through `SEED`
-- a train/validation split from the recovered training tensors
-- z-score normalization using training-split statistics only
+- a seeded random train/validation split from the recovered training tensors
+- per-channel z-score normalization using training-split statistics only
 - `CrossEntropyLoss`
 - Adam optimizer
+- early stopping on validation loss
+- best validation-loss checkpoint restoration before test evaluation
 - macro-averaged precision, recall, and F1-score
 
 Macro-averaged metrics are appropriate here because the datasets are multi-class and may have class imbalance. Macro averaging gives each class equal weight instead of allowing large classes to dominate the score.
@@ -153,6 +157,48 @@ Initial expectation:
 - `LightAlexNet` should be the fastest and smallest.
 - `LightResNet18` is the most promising lightweight accuracy/efficiency compromise because it keeps residual connections.
 - `LightVGG16` is a useful middle ground, but may be less efficient than `LightResNet18` if accuracy is similar.
+
+## Task 3: Organs Scarce-Data Strategy
+
+The new `organs` dataset has 11 classes and only 500 training images. A normal scratch run can overfit quickly, so Task 3 compares ordinary training against transfer from the larger grayscale `chest` dataset.
+
+The implemented command is:
+
+```bash
+python3 Code/run_task3.py
+```
+
+The runner first trains `LightVGG16` on `chest` and saves the checkpoint. Then it compares three `organs` training modes:
+
+| Mode | What it means | Why it is useful |
+|---|---|---|
+| `scratch` | Train `LightVGG16` on `organs` from random initialization. | Baseline for the scarce-data problem. |
+| `frozen` | Load chest features, replace the classifier, and train only the classifier. | Tests whether chest features transfer without overfitting the small dataset. |
+| `finetune` | Load chest features, replace the classifier, and train the whole model. | Lets the model adapt all features to `organs`. |
+
+Task 3 writes its metrics to:
+
+```text
+results/task3_metrics.csv
+```
+
+### Task 3 Result Table
+
+Final local CPU run from `results/task3_metrics.csv`:
+
+| Dataset | Model | Mode | Epochs | Trainable params | Accuracy | Precision | Recall | Macro F1 |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| `organs` | `LightVGG16` | `scratch` | 20 | 242,379 | 56.00% | 56.03% | 47.71% | 46.28% |
+| `organs` | `LightVGG16` | `frozen` | 20 | 1,419 | 28.00% | 9.67% | 22.19% | 13.46% |
+| `organs` | `LightVGG16` | `finetune` | 20 | 242,379 | 57.50% | 61.58% | 52.55% | 50.87% |
+
+### Task 3 Recommendation
+
+The best result in this run is `finetune`, with 57.50% accuracy and 50.87% macro F1. It passes the 40% target for the scarce `organs` dataset.
+
+`scratch` is also above target at 56.00%, but `finetune` is slightly better on accuracy, precision, recall, and macro F1. The frozen feature extractor is much weaker, so the chest features are useful only as a starting point; the model still needs to adapt its convolutional filters to the organ images.
+
+I did not use a completely new external pretrained model for this task. The assignment asks to exploit the existing image profiles, and `chest` is already grayscale medical image data with the same image size as `organs`. That makes the transfer comparison easier to explain and avoids adding a new external dependency.
 
 ## Current Limitations
 

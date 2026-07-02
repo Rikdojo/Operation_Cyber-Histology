@@ -4,7 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
-def plot_losses(histories, title):
+def plot_losses(histories, title, output_path=None):
     fig, ax = plt.subplots(figsize=(7, 4))
 
     for label, (train_losses, val_losses) in histories.items():
@@ -19,9 +19,15 @@ def plot_losses(histories, title):
 
     plt.tight_layout()
 
-    Path("history").mkdir(exist_ok=True)
-    file_name = title.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
-    plt.savefig(f"history/{file_name}.png", dpi=300, bbox_inches="tight")
+    if output_path is None:
+        Path("history").mkdir(exist_ok=True)
+        file_name = title.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
+        output_path = Path("history") / f"{file_name}.png"
+    else:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
 
 

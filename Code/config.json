@@ -5,6 +5,15 @@
   "BATCH_SIZE": 32,
   "MODELS": ["AlexNet", "VGG16", "ResNet18"],
   "VARIANTS": ["Baseline", "Lightweight"],
+  "TASK3": {
+    "SOURCE_DATA": "chest",
+    "TARGET_DATA": "organs",
+    "MODEL": "LightVGG16",
+    "MODES": ["scratch", "frozen", "finetune"],
+    "SOURCE_EPOCHS": 8,
+    "TARGET_EPOCHS": 20,
+    "CHECKPOINT": "results/task3_chest_lightvgg16.pt"
+  },
   "DATASETS": {
     "cells": {
       "channels": 3,
@@ -12,13 +21,17 @@
     },
     "chest": {
       "channels": 1,
-      "num_classes": 3
+      "num_classes": 2
     },
     "lesions": {
       "channels": 3,
       "num_classes": 7
     },
     "orgs": {
+      "channels": 1,
+      "num_classes": 11
+    },
+    "organs": {
       "channels": 1,
       "num_classes": 11
     }
@@ -29,5 +42,8 @@
   "EPOCHS": 20,
   "VAL_SPLIT": 0.1,
   "SEED": 42,
-  "OUTPUT_DIR": "results"
+  "PATIENCE": 5,
+  "OUTPUT_DIR": "results",
+  "CHECKPOINT_DIR": "results/models",
+  "HISTORY_DIR": "results/history"
 }

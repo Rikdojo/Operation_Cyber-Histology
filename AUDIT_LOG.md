@@ -47,6 +47,19 @@ Audited files:
 | `Code/inference.py` | Task 2 could not quantify inference efficiency. | Inference only needed accuracy metrics for Task 1 and did not expose latency or peak memory values. | Added inference timing, latency per sample, and CUDA peak inference memory reporting while preserving accuracy, precision, recall, and macro F1. | `e7a5bde` |
 | `README.md` / `REPORT.md` | Task 2 workflow and green-analysis expectations were not documented. | Documentation still focused mainly on Task 1 reconstruction and benchmark reporting. | Added Green Initiative run commands, output file description, parameter reduction table, and instructions for completing the final green analysis after GPU benchmarking. | `0a1647f` |
 
+## Task 3 Organs Transfer Additions
+
+| File name | Problem manifestation | Root cause | Correction implemented | Git commit hash |
+|---|---|---|---|---|
+| `Code/config.json` | The scarce `organs` experiment had no central settings for source data, target data, model, modes, or checkpoint path. | Task 3 requires a different training setup than the normal dataset/model matrix. | Added a `TASK3` configuration block for `chest` to `organs` transfer with `scratch`, `frozen`, and `finetune` modes. | `local task3 work` |
+| `Code/run_task3.py` | The project could not compare ordinary `organs` training against transferred feature knowledge. | Existing runners only handled baseline model training and Task 2 green comparisons. | Added a small Task 3 runner that trains a source checkpoint on `chest`, adapts the classifier for `organs`, and logs all transfer modes to CSV. | `local task3 work` |
+| `README.md` / `REPORT.md` | The scarce-data workflow was not documented for final reproduction. | Task 3 had no run command, output description, or report table. | Added Task 3 commands, output files, method description, and a result table ready for final metrics. | `local task3 work` |
+| `Code/data.py` | Validation data was always the final slice of the training file. | The train/validation split used tensor order instead of a seeded random permutation. | Added a seeded random split before creating train and validation tensors. | `local task3 work` |
+| `Code/data.py` | Color datasets were normalized with one global mean and standard deviation. | Channel statistics were collapsed together, even though image normalization is normally channel-wise. | Added training-only per-channel mean/std normalization for train, validation, and test tensors. | `local task3 work` |
+| `Code/config.json` | Task 3 was pointed at `orgs.pt`, which is the larger original organ dataset, not the scarce new dataset. | The assignment uses both `orgs` and `organs`, and the file names are easy to confuse. | Added `organs` to the dataset registry and made Task 3 target `organs.pt`. | `local task3 work` |
+| `Code/trainer.py` | Final evaluation used the last training epoch even if validation performance was worse than an earlier epoch. | The training loop did not keep the best validation-loss model. | Added best-state tracking, optional checkpoint saving, early stopping, and returned training history. | `local task3 work` |
+| `Code/train.py` / `Code/runner.py` / `Code/run_task3.py` | Training produced no loss curves and did not consistently save best model files. | Plotting and checkpoint paths were not connected to the main training entry points. | Saved best checkpoints under `results/models` and loss PNGs under `results/history`. | `local task3 work` |
+
 ## Current Open Risks
 
 | Area | Risk | Recommendation |

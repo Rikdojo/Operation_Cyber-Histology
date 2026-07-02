@@ -15,7 +15,7 @@ from data import get_loaders
 from inference import run_inference
 from trainer import Trainer
 import models
-from utils import write_csv
+from utils import plot_losses, write_csv
 
 
 def load_config(config_path=None):
@@ -40,6 +40,13 @@ def get_data_path(config):
     if data_path.is_absolute():
         return data_path
     return Path(__file__).resolve().parent.parent / data_path
+
+
+def resolve_project_path(config, key):
+    path = Path(config[key])
+    if path.is_absolute():
+        return path
+    return Path(__file__).resolve().parent.parent / path
 
 
 def get_run_list(config, run_all=False):
@@ -83,6 +90,7 @@ def main():
             data_path=get_data_path(config),
             batch_size=config["BATCH_SIZE"],
             val_split=config.get("VAL_SPLIT"),
+            seed=config.get("SEED", 42),
         )
         dataset_config = config["DATASETS"][data_name]
         model_class = getattr(models, model_name)
@@ -96,9 +104,23 @@ def main():
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
         trainer = Trainer(model, criterion, optimizer, device)
-        trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])
+        checkpoint_path = resolve_project_path(config, "CHECKPOINT_DIR") / f"{model_name}_{data_name}.pt"
+        history = trainer.fit(
+            train_loader,
+            val_loader,
+            epochs=config["EPOCHS"],
+            patience=config.get("PATIENCE"),
+            save_best_path=checkpoint_path,
+        )
 
-        test_metrics = run_inference(model, test_loader, device)
+        history_path = resolve_project_path(config, "HISTORY_DIR") / f"{model_name}_{data_name}_loss.png"
+        plot_losses(
+            {f"{model_name} {data_name}": (history["train_loss"], history["val_loss"])},
+            title=f"{model_name} on {data_name}",
+            output_path=history_path,
+        )
+
+        test_metrics = run_inference(trainer.model, test_loader, device)
 
         print(
             "Test Metrics | "
