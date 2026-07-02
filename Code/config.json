@@ -13,7 +13,7 @@
     },
     "chest": {
       "channels": 1,
-      "num_classes": 3
+      "num_classes": 2
     },
     "lesions": {
       "channels": 3,
@@ -39,13 +39,14 @@
   },
 
   "task3":{
-    "DATA": "organs",
+    "TARGET_DATA": "organs",
     "channels": 1,
     "num_classes": 11,
-    "FROM_DATA": {"DATA": "chest", "channels": 1, "num_classes": 3},
-    "MODEL":  "Light_VGG16",
-    "MODES":["scratch", "pretrained", "finetune"],
-    "CHECKPOINT": "results/model/Light_VGG16_orgs.pt"
+    "SOURCE_DATA": {"DATA": "orgs", "channels": 1, "num_classes": 11},
+    "MODEL":  "Light_ResNet18",
+    "MODES":["scratch", "feature_extraction", "fine_tune"],
+    "DATA_TRANSFORM": false,
+    "CHECKPOINT": "results/model/Light_ResNet18_orgs.pt"
 
   }  
 }
