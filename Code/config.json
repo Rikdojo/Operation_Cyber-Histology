@@ -1,11 +1,11 @@
 {
 
   "RUN_ALL": false,
-  "DATA": "cells",
+  "DATA": "chest",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
   "MODELS": ["AlexNet", "VGG16", "ResNet18"],
-  "MODEL": "AlexNet",
+  "MODEL": "Light_VGG16",
   "DATASETS": {
     "cells": {
       "channels": 3,

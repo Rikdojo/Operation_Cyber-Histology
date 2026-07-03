@@ -34,7 +34,7 @@ def get_run_list(config, task, run_all=False):
 
     if task == "task3":
         return [
-            (config["task3"]["DATA"], config["task3"]["MODEL"],mode)
+            (config["task3"]["TARGET_DATA"], config["task3"]["MODEL"],mode)
             for mode in config["task3"]["MODES"]
         ]
     
@@ -81,6 +81,7 @@ def main():
     task = args.task
     rows = []
     experiment_list = get_run_list(config,task, run_all=run_all)
+    data_augmentation = False
 
     for data_name, model_name, mode in experiment_list:
            
@@ -95,11 +96,12 @@ def main():
             model = model_class(in_channels=config["DATASETS"][data_name]["channels"], num_classes=config["DATASETS"][data_name]["num_classes"], drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
 
         elif task == "task3" :
-            model = build_pretrained_model(config, mode, device)
+            model = build_pretrained_model(config["task3"], mode, device)
             model_name = f"{model_name}_{mode}" 
+            data_augmentation = config["task3"].get("DATA_TRANSFORM", False)
 
         print(f"\nRunning {model_name} on {data_name}")     
-        result_metrics = run_experiment(model, config, model_name, data_name, device=device)
+        result_metrics = run_experiment(model, config, model_name, data_name, data_augmentation, device=device)
 
         rows.append({
             "dataset": data_name,

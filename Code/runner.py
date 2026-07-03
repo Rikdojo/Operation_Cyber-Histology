@@ -27,9 +27,9 @@ def get_data_path(config):
         return data_path
     return Path(__file__).resolve().parent / data_path
 
-def run_experiment(model,config, model_name,data_name, device):
+def run_experiment(model,config, model_name,data_name, data_augmentation, device):
 
-    train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"), seed=config.get("SEED", 42)) 
+    train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"), seed=config.get("SEED", 42), transform=data_augmentation) 
         
     num_params = sum(
             p.numel() for p in model.parameters() if p.requires_grad

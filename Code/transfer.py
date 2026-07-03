@@ -4,35 +4,44 @@ import torch.nn as nn
 import models
 
 
-def build_pretrained_model(config, mode, device):
-    model_name = config["task3"]["MODEL"]
+
+def build_pretrained_model(task3_config, mode, device):
+    model_name = task3_config["MODEL"]
    
     model_class = getattr(models, model_name)
   
     if mode == "scratch":
         return model_class(
-            in_channels=config["task3"]["channels"],
-            num_classes=config["task3"]["num_classes"],
+            in_channels=task3_config["channels"],
+            num_classes=task3_config["num_classes"],
         ).to(device)
     
     # pretrained / finetune
     model = model_class(
-        in_channels=config["task3"]["FROM_DATA"]["channels"],
-        num_classes=config["task3"]["FROM_DATA"]["num_classes"],
+        in_channels=task3_config["SOURCE_DATA"]["channels"],
+        num_classes=task3_config["SOURCE_DATA"]["num_classes"],
     ).to(device)
 
-    checkpoint = torch.load(config["task3"]["CHECKPOINT"], map_location=device)
+
+
+    checkpoint_path = Path(task3_config["CHECKPOINT"])
+    if not checkpoint_path.is_absolute():
+        checkpoint_path = Path(__file__).resolve().parent.parent / checkpoint_path
+
+
+    checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint)
 
     # freeze parameters 
+    print(model)
 
     #adjust classifier for new number of classes
     if isinstance(model.classifier, nn.Sequential):# VGG / AlexNet
         in_features = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(in_features, config["task3"]["num_classes"]).to(device)
+        model.classifier[-1] = nn.Linear(in_features, task3_config["num_classes"]).to(device)
     else:
         in_features = model.classifier.in_features
-        model.classifier = nn.Linear(in_features, config["task3"]["num_classes"]).to(device)
+        model.classifier = nn.Linear(in_features, task3_config["num_classes"]).to(device)
 
     # freeze parameters 
     for p in model.parameters():
@@ -42,7 +51,7 @@ def build_pretrained_model(config, mode, device):
     for p in model.classifier.parameters():
         p.requires_grad = True
 
-    if mode == "finetune":
+    if mode == "fine_tune":
         if "ResNet" in model_name:
             for p in model.stage4.parameters():
                 p.requires_grad = True
