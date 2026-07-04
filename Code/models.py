@@ -180,3 +180,130 @@ class ResNet18(nn.Module):
         out = torch.flatten(out, 1)
         return self.classifier(out)
 
+#--------- Light Model ---------
+class Light_AlexNet(nn.Module):
+    """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        drop_rate = kwargs.get("drop_rate", 0.5)
+        
+        self.features = nn.Sequential(
+            nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(48),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            
+            nn.Conv2d(48, 128, kernel_size=5, padding=2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 192, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.AdaptiveAvgPool2d((1, 1)),  
+
+        )
+        
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=drop_rate),
+            nn.Linear(192,128 ),     
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=drop_rate),
+            nn.Linear(128, 64),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, num_classes))
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        return self.classifier(x)
+    
+    
+
+class Light_VGG16(nn.Module): 
+    """VGG16 in C configuration of Simonyan & Zisserman, (2014) adapted for smaller inputs."""
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        drop_rate = kwargs.get("drop_rate", 0.5)
+
+        self.features = nn.Sequential(
+            VGGBlock(in_channels, 64, num_convs=2),
+            VGGBlock(64, 128, num_convs=2),
+            VGGBlock(128, 192, num_convs=3),
+            VGGBlock(192, 256, num_convs=3), 
+            VGGBlock(256, 384, num_convs=3)
+
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(384, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=drop_rate),
+            nn.Linear(256, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=drop_rate),
+            nn.Linear(128, num_classes)
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        return self.classifier(x)
+    
+
+
+class Light_ResNet18(nn.Module):
+    """ResNet18 (He et al., 2016) adapted for smaller inputs.
+    
+    activation - flexible activation function to allow experimentation (e.g., ReLU, LeakyReLU, etc.)
+    """
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+
+        activation = getattr(nn, kwargs.get("activation_str", activation_str) or activation_str)
+
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.activation = activation(inplace=True)
+        
+        self.stage1 = nn.Sequential(
+            ResBlock(64, 64, activation(inplace=True), stride=1),
+            ResBlock(64, 64, activation(inplace=True), stride=1)
+        )
+        self.stage2 = nn.Sequential(
+            ResBlock(64, 128, activation(inplace=True), stride=2),          
+            ResBlock(128, 128, activation(inplace=True), stride=1)
+        )
+        self.stage3 = nn.Sequential(
+            ResBlock(128, 192, activation(inplace=True), stride=2), 
+            ResBlock(192, 192, activation(inplace=True), stride=1)
+        )
+        self.stage4 = nn.Sequential(
+            ResBlock(192, 256, activation(inplace=True), stride=2),
+            ResBlock(256, 256, activation(inplace=True), stride=1)
+        )
+        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Linear(256, num_classes)
+
+    def forward(self, x):
+        out = self.activation(self.bn1(self.conv1(x)))
+        out = self.stage1(out)
+        out = self.stage2(out)
+        out = self.stage3(out)
+        out = self.stage4(out)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        return self.classifier(out)
+    
+
+

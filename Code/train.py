@@ -38,19 +38,28 @@ def get_data_path(config):
     data_path = Path(config["DATA_PATH"])
     if data_path.is_absolute():
         return data_path
-    return Path(__file__).resolve().parent.parent / data_path
+    return Path(__file__).resolve().parent/ data_path
 
 
-def get_run_list(config, run_all=False):
+def get_run_list(config, task, run_all=False):
     if run_all:
-        return [(data_name, model_name)
-                for data_name in config["DATASETS"]
-                for model_name in config["MODELS"]]
-    return [(config["DATA"], config["MODEL"])]
-
+        if task == "task1":
+            return [(data_name, model_name, None)
+                    for data_name in config["DATASETS"]
+                    for model_name in config["MODELS"]]
+        elif task == "task2":
+            return [(data_name, model_name, mode)
+                    for data_name in config["DATASETS"]
+                    for model_name in config["task2"]["MODELS"]
+                    for mode in config["task2"]["MODES"]]
+    return [
+        (config["DATA"], model_name, None)
+        for model_name in config["MODELS"]
+    ]
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train histology classification models.")
+    parser.add_argument("--task",choices=["task1", "task2", "task3"],default="task1",)
     parser.add_argument("--config", default=None, help="Path to config.json")
     parser.add_argument("--data", default=None, help="Dataset name from config")
     parser.add_argument("--model", default=None, help="Model name from config")
@@ -66,21 +75,31 @@ def main():
         config["DATA"] = args.data
     if args.model:
         config["MODEL"] = args.model
-
+    
     set_seed(config.get("SEED", 42))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
 
     run_all = args.all or config.get("RUN_ALL", False)
+    task = args.task
     rows = []
+    experiment_list = get_run_list(config,task, run_all=run_all)
 
-    for data_name, model_name in get_run_list(config, run_all=run_all):
-        print(f"\nRunning {model_name} on {data_name}")
+    for data_name, model_name,mode in experiment_list:
         
         train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"), seed=config.get("SEED", 42))
-        model_class = getattr(models, model_name)
-        model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
         
+        if task == "task1":
+            model_class = getattr(models, model_name)
+            model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
+            
+        if task == "task2":
+            if mode == "Light":
+                model_name = f"{mode}_{model_name}"
+            model_class = getattr(models, model_name)
+            model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None), mode=mode).to(device)
+            
+        print(f"\nRunning {model_name} on {data_name}")
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
         trainer = Trainer(model, criterion, optimizer, device)
@@ -107,7 +126,7 @@ def main():
     output_dir = Path(config.get("OUTPUT_DIR", "results"))
     if not output_dir.is_absolute():
         output_dir = Path(__file__).resolve().parent.parent / output_dir
-    write_csv(rows, output_path=output_dir / "test_metrics.csv")
+    write_csv(rows,output_path=output_dir / f"{task}_test_metrics.csv")
 
 
 if __name__ == "__main__":
