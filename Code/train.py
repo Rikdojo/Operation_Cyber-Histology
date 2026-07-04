@@ -31,31 +31,31 @@ def set_seed(seed):
      
 
 def get_run_list(config, task, run_all=False):
+    if task == "task1":
+        if run_all:
+            return [
+                (data_name, model_name, None)
+                for data_name in config["DATASETS"]
+                for model_name in config["MODELS"]
+            ]
+        return [(config["DATA"], config["MODEL"], None)]
+
+    if task == "task2":
+        if run_all:
+            return [
+                (data_name, model_name, mode)
+                for data_name in config["DATASETS"]
+                for model_name in config["task2"]["MODELS"]
+                for mode in config["task2"]["MODES"]
+            ]
+        return [(config["DATA"], config["MODEL"], "Baseline")]
 
     if task == "task3":
         return [
-            (config["task3"]["TARGET_DATA"], config["task3"]["MODEL"],mode)
+            (config["task3"]["TARGET_DATA"], config["task3"]["MODEL"], mode)
             for mode in config["task3"]["MODES"]
         ]
-    
-    if run_all:
-        if task == "task1":
-            return [(data_name, model_name,None)
-                    for data_name in config["DATASETS"]
-                    for model_name in config["MODELS"]
-                ]
-        elif task == "task2":
-            return [(data_name, model_name,mode)
-                    for data_name in config["DATASETS"]
-                    for model_name in config["task2"]["MODELS"]
-                    for mode in config["task2"]["MODES"]
-                ]
-    else:
-       return [
-        (config["DATA"], model_name, None)
-        for model_name in config["MODELS"]
-    ]
-      
+
     raise ValueError(f"Unknown task: {task}")
 
 def parse_args():
@@ -68,8 +68,7 @@ def parse_args():
 def main():
     args = parse_args()
     task = args.task
-    config = load_config(args.config) 
-    
+    config = load_config()    
     set_seed(config.get("SEED", 42))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
