@@ -236,15 +236,15 @@ class Light_VGG16(nn.Module):
         self.features = nn.Sequential(
             VGGBlock(in_channels, 64, num_convs=2),
             VGGBlock(64, 128, num_convs=2),
-            VGGBlock(128, 256, num_convs=3),
-            VGGBlock(256, 256, num_convs=3),
-            VGGBlock(256, 512, num_convs=3)
+            VGGBlock(128, 192, num_convs=3),
+            VGGBlock(192, 256, num_convs=3),
+            VGGBlock(256, 384, num_convs=3)
 
         )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         
         self.classifier = nn.Sequential(
-            nn.Linear(512, 256),
+            nn.Linear(384, 256),
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(256, 128),

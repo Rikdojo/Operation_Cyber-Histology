@@ -51,34 +51,29 @@ def get_run_list(config, task, run_all=False):
                     for mode in config["task2"]["MODES"]
                 ]
     else:
-        return [(config["DATA"], config["MODEL"], None)]
+       return [
+        (config["DATA"], model_name, None)
+        for model_name in config["MODELS"]
+    ]
+      
     raise ValueError(f"Unknown task: {task}")
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task",choices=["task1", "task2", "task3"],default="task1",)
-    parser.add_argument("--config", default=None, help="Path to config.json")
-    parser.add_argument("--data", default=None, help="Dataset name from config")
-    parser.add_argument("--model", default=None, help="Model name from config")
-    parser.add_argument("--all", action="store_true", help="Run every dataset/model pair")
+    
     return parser.parse_args()
-
-
+  
+ 
 def main():
     args = parse_args()
-    config = load_config(args.config)
-
-    if args.data:
-        config["DATA"] = args.data
-    if args.model:
-        config["MODEL"] = args.model
-
+    task = args.task
+    config = load_config(args.config) 
+    
     set_seed(config.get("SEED", 42))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
-
-    run_all = args.all or config.get("RUN_ALL", False)
-    task = args.task
+    run_all = config.get("RUN_ALL", False)
     rows = []
     experiment_list = get_run_list(config,task, run_all=run_all)
     data_augmentation = False

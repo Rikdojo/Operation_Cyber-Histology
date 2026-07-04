@@ -1,7 +1,6 @@
 {
-
-  "RUN_ALL": false,
-  "DATA": "chest",
+  "RUN_ALL": true,
+  "DATA": "cells",
   "DATA_PATH": "data",
   "BATCH_SIZE": 32,
   "MODELS": ["AlexNet", "VGG16", "ResNet18"],
@@ -24,10 +23,15 @@
       "num_classes": 11
     }
   },
+  "task2":{
+    "MODELS": ["AlexNet", "VGG16", "ResNet18"],
+    "MODES":["Baseline", "Light"]
+  },
+
   "DROP_RATE": 0.5,
   "ACTIVATION": "ReLU",
   "LEARNING_RATE": 0.001,
-  "EPOCHS": 20,
+  "EPOCHS": 1,
   "VAL_SPLIT": 0.1,
   "SEED": 42,
   "OUTPUT_DIR": "results",

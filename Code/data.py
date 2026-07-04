@@ -71,8 +71,8 @@ def get_loaders(data, data_path, batch_size, val_split=0.1, seed=42, transform=F
    
    
     train_dataset = MedicalDataset(train_data, train_labels, mean, std, transform=transform)
-    val_dataset = MedicalDataset(val_data, val_labels, mean, std)
-    test_dataset = MedicalDataset(test_data, test_labels, mean, std)
+    val_dataset = MedicalDataset(val_data, val_labels, mean, std, transform= False)
+    test_dataset = MedicalDataset(test_data, test_labels, mean, std, transform = False)
 
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
