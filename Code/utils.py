@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 
-def plot_losses(histories, title):
+def plot_losses(histories, title,out_path=None):
     fig, ax = plt.subplots(figsize=(7, 4))
 
     for label, (train_losses, val_losses) in histories.items():
@@ -19,7 +19,8 @@ def plot_losses(histories, title):
 
     plt.tight_layout()
 
-    Path("history").mkdir(exist_ok=True)
+    history_dir = Path(out_path) / "history"
+    history_dir.mkdir(parents=True, exist_ok=True)
 
     file_name = (
         title.replace(" ", "_")
@@ -27,34 +28,22 @@ def plot_losses(histories, title):
         .replace(")", "")
         .replace("/", "_")
     )
+    plot_path = history_dir / f"{file_name}.png"
 
-    plt.savefig(f"history/{file_name}.png", dpi=300, bbox_inches="tight")
-    plt.show()
-    plt.close()
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight")
 
 
-def write_csv(rows, output_path):
+def write_csv(rows,output_path):
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
-        "dataset",
-        "model",
-        "epochs",
-        "test_loss",
-        "accuracy",
-        "precision",
-        "recall",
-        "macro_f1",
-        "runtime_seconds"
-    ]
+
+    if not rows: 
+        print(f"Warning: no results to write to {output_path}")
+        return
     
-    with open(output_path, "a", newline="") as f:
-        writer = csv.DictWriter(f,fieldnames=rows[0].keys())
-
-        writer.writeheader()
-
-        writer.writerows(rows)
-
-
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+         writer = csv.DictWriter(f, fieldnames=rows[0].keys()) 
+         writer.writeheader() 
+         writer.writerows(rows)
 

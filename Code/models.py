@@ -176,11 +176,12 @@ class ResNet18(nn.Module):
         out = self.stage3(out)
         out = self.stage4(out)
         out = self.avgpool(out)
-
         out = torch.flatten(out, 1)
         return self.classifier(out)
+    
 
-#--------- Light Model ---------
+
+#--------- 
 class Light_AlexNet(nn.Module):
     """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
     def __init__(self, in_channels, num_classes, **kwargs):
@@ -212,7 +213,7 @@ class Light_AlexNet(nn.Module):
         
         self.classifier = nn.Sequential(
             nn.Dropout(p=drop_rate),
-            nn.Linear(192,128 ),     
+            nn.Linear(192,128 ),      #change the first linear layer's input features from 2048 to 192 *4*4=3072
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(128, 64),
@@ -223,10 +224,9 @@ class Light_AlexNet(nn.Module):
         x = self.features(x)
         x = torch.flatten(x, 1)
         return self.classifier(x)
-    
-    
 
-class Light_VGG16(nn.Module): 
+
+class Light_VGG16(nn.Module):
     """VGG16 in C configuration of Simonyan & Zisserman, (2014) adapted for smaller inputs."""
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
@@ -237,7 +237,7 @@ class Light_VGG16(nn.Module):
             VGGBlock(in_channels, 64, num_convs=2),
             VGGBlock(64, 128, num_convs=2),
             VGGBlock(128, 192, num_convs=3),
-            VGGBlock(192, 256, num_convs=3), 
+            VGGBlock(192, 256, num_convs=3),
             VGGBlock(256, 384, num_convs=3)
 
         )
@@ -284,7 +284,7 @@ class Light_ResNet18(nn.Module):
             ResBlock(128, 128, activation(inplace=True), stride=1)
         )
         self.stage3 = nn.Sequential(
-            ResBlock(128, 192, activation(inplace=True), stride=2), 
+            ResBlock(128, 192, activation(inplace=True), stride=2),
             ResBlock(192, 192, activation(inplace=True), stride=1)
         )
         self.stage4 = nn.Sequential(
@@ -305,5 +305,3 @@ class Light_ResNet18(nn.Module):
         out = torch.flatten(out, 1)
         return self.classifier(out)
     
-
-

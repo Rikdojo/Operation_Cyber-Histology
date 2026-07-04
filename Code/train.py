@@ -7,16 +7,11 @@ import argparse
 import json
 import random
 from pathlib import Path
-
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from data import get_loaders
-from inference import run_inference
-from trainer import Trainer
 import models
 from utils import write_csv
-
+from runner import run_experiment 
+from transfer import build_pretrained_model
 
 
 def load_config(config_path=None):
@@ -34,95 +29,91 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
      
-def get_data_path(config):
-    data_path = Path(config["DATA_PATH"])
-    if data_path.is_absolute():
-        return data_path
-    return Path(__file__).resolve().parent/ data_path
-
 
 def get_run_list(config, task, run_all=False):
+
+    if task == "task3":
+        return [
+            (config["task3"]["TARGET_DATA"], config["task3"]["MODEL"],mode)
+            for mode in config["task3"]["MODES"]
+        ]
+    
     if run_all:
         if task == "task1":
-            return [(data_name, model_name, None)
+            return [(data_name, model_name,None)
                     for data_name in config["DATASETS"]
-                    for model_name in config["MODELS"]]
+                    for model_name in config["MODELS"]
+                ]
         elif task == "task2":
-            return [(data_name, model_name, mode)
+            return [(data_name, model_name,mode)
                     for data_name in config["DATASETS"]
                     for model_name in config["task2"]["MODELS"]
-                    for mode in config["task2"]["MODES"]]
-    return [
+                    for mode in config["task2"]["MODES"]
+                ]
+    else:
+       return [
         (config["DATA"], model_name, None)
         for model_name in config["MODELS"]
     ]
+      
+    raise ValueError(f"Unknown task: {task}")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train histology classification models.")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--task",choices=["task1", "task2", "task3"],default="task1",)
-    parser.add_argument("--config", default=None, help="Path to config.json")
-    parser.add_argument("--data", default=None, help="Dataset name from config")
-    parser.add_argument("--model", default=None, help="Model name from config")
-    parser.add_argument("--all", action="store_true", help="Run every dataset/model pair")
+    
     return parser.parse_args()
-
-
+  
+ 
 def main():
     args = parse_args()
-    config = load_config(args.config)
-
-    if args.data:
-        config["DATA"] = args.data
-    if args.model:
-        config["MODEL"] = args.model
+    task = args.task
+    config = load_config(args.config) 
     
     set_seed(config.get("SEED", 42))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
-
-    run_all = args.all or config.get("RUN_ALL", False)
-    task = args.task
+    run_all = config.get("RUN_ALL", False)
     rows = []
     experiment_list = get_run_list(config,task, run_all=run_all)
+    data_augmentation = False
 
-    for data_name, model_name,mode in experiment_list:
-        
-        train_loader, val_loader, test_loader = get_loaders(data_name, data_path=get_data_path(config), batch_size=config["BATCH_SIZE"], val_split=config.get("VAL_SPLIT"), seed=config.get("SEED", 42))
-        
-        if task == "task1":
+    for data_name, model_name, mode in experiment_list:
+           
+        if task == "task1": 
             model_class = getattr(models, model_name)
-            model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
+            model = model_class(in_channels=config["DATASETS"][data_name]["channels"], num_classes=config["DATASETS"][data_name]["num_classes"], drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
             
-        if task == "task2":
+        elif task == "task2":
             if mode == "Light":
                 model_name = f"{mode}_{model_name}"
             model_class = getattr(models, model_name)
-            model = model_class(in_channels=config["DATASETS"][data_name]["channels"],num_classes=config["DATASETS"][data_name]["num_classes"],drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None), mode=mode).to(device)
-            
-        print(f"\nRunning {model_name} on {data_name}")
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
-        trainer = Trainer(model, criterion, optimizer, device)
-        trainer.fit(train_loader, val_loader, epochs=config["EPOCHS"])
+            model = model_class(in_channels=config["DATASETS"][data_name]["channels"], num_classes=config["DATASETS"][data_name]["num_classes"], drop_rate=config.get("DROP_RATE", 0.5), activation_str=config.get("ACTIVATION", None)).to(device)
 
-        test_metrics = run_inference(model, test_loader, device)
+        elif task == "task3" :
+            model = build_pretrained_model(config["task3"], mode, device)
+            model_name = f"{model_name}_{mode}" 
+            data_augmentation = config["task3"].get("DATA_TRANSFORM", False)
 
-        print( 
-        "Test Metrics | "
-        f"Accuracy: {test_metrics['accuracy'] * 100:.2f}% - "
-        f"Precision: {test_metrics['precision'] * 100:.2f}% - "
-        f"Recall: {test_metrics['recall'] * 100:.2f}% - "
-        f"Macro F1: {test_metrics['macro_f1'] * 100:.2f}%")
+        print(f"\nRunning {model_name} on {data_name}")     
+        result_metrics = run_experiment(model, config, model_name, data_name, data_augmentation, device=device)
 
-
-        rows.append({"dataset": data_name, 
-            "model": model_name, 
+        rows.append({
+            "dataset": data_name,
+            "model": model_name,
             "epochs": config["EPOCHS"],
-            "accuracy": test_metrics["accuracy"] * 100,
-            "precision": test_metrics["precision"] * 100,
-            "recall": test_metrics["recall"] * 100,
-            "macro_f1": test_metrics["macro_f1"] * 100,
+            "trainable_parameters": result_metrics["num_params"],
+            "training_time": result_metrics["training_time"],
+            "peak_training_memory_mb": result_metrics["peak_train_memory"],
+            "accuracy": result_metrics["accuracy"] * 100,
+            "precision": result_metrics["precision"] * 100,
+            "recall": result_metrics["recall"] * 100,
+            "macro_f1": result_metrics["macro_f1"] * 100,
+            "inference_time": result_metrics["inference_time"],
+            "peak_inference_memory_mb": result_metrics["peak_inference_memory"],
+            "inference_latency_per_sample": result_metrics["inference_latency_per_sample"] ,
         })
+
     output_dir = Path(config.get("OUTPUT_DIR", "results"))
     if not output_dir.is_absolute():
         output_dir = Path(__file__).resolve().parent.parent / output_dir
