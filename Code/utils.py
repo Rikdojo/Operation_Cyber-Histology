@@ -31,8 +31,7 @@ def plot_losses(histories, title,out_path=None):
     plot_path = history_dir / f"{file_name}.png"
 
     plt.savefig(plot_path, dpi=300, bbox_inches="tight")
-
-
+    plt.close(fig)
 def write_csv(rows,output_path):
 
     output_path = Path(output_path)

@@ -37,11 +37,6 @@
   "OUTPUT_DIR": "results",
   "PATIENCE": 7,
 
-  "task2": {
-    "MODELS": ["AlexNet", "VGG16", "ResNet18"],
-    "MODES": ["Baseline", "Light"]
-  },
-
   "task3": {
     "TARGET_DATA": "organs",
     "channels": 1,

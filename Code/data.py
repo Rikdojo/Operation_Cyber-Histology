@@ -5,20 +5,12 @@ MG 6/6/2026
 """
 import torch
 from pathlib import Path
-from torch.utils.data import Dataset, TensorDataset, DataLoader
-from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 
 def image_augmentation(image):
-    train_transform = transforms.Compose([
-    transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomApply([
-        transforms.RandomAffine(
-            degrees=8,
-            translate=(0.05, 0.05),
-            scale=(0.9, 1.1),
-        )], p=0.5),
-])
-    return train_transform(image)
+    if torch.rand(()) < 0.5:
+        image = torch.flip(image, dims=[2])
+    return image
 
 
 class MedicalDataset(Dataset):
