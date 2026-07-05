@@ -46,12 +46,11 @@ Audited files:
 
 ## Current Open Risks
 
-| Area                       | Risk                                                                                                                                        | Recommendation                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full benchmark evidence    | The final 12-run task 1 benchmark matrix and task 2 green matrix still need to be generated from the current code.                         | Run all dataset/model combinations and update `REPORT.md` with final metrics.                                                                              |
-| Dependency reproducibility | Dependencies are documented in `README.md`, but there is no committed `requirements.txt`.                                                   | Add a small dependency file before final packaging.                                                                                                        |
-| README/code mismatch       | Some README commands and file names may still describe older script names or output names.                                                   | Update README after the final code path is frozen.                                                                                                         |
-| Task 3 checkpoint          | `feature_extraction` and `fine_tune` modes require the source checkpoint named in `task3.CHECKPOINT`.                                       | Train the source model first or add a clear source-checkpoint preparation step before running those modes.                                                  |
+| Area | Risk | Recommendation |
+|---|---|---|
+| Dependency reproducibility | Dependencies are documented in `README.md`, but there is no committed `requirements.txt`. | Add a small dependency file before final packaging if the submission expects installable dependencies as a file. |
+| Statistical robustness | The final benchmarks are single-seed runs. | If time permits, rerun the important recommendations with additional seeds and report mean/std values. |
+| Result artifact packaging | The repository ignores `results/` and `data/` by default. | Force-add required result artifacts or submit them separately if the course requires generated CSV/checkpoint evidence. |
 
 ## Verification Evidence
 
@@ -70,3 +69,12 @@ python3 -m unittest discover -s tests
 ```
 
 The tests cover config loading, task 1/task 2 run lists, model output shapes, synthetic `.pt` data loading, green metric output fields, and device/memory fallback behavior.
+
+Current benchmark artifacts present locally:
+
+```text
+results/task1_test_metrics.csv
+results/task2_test_metrics.csv
+results/task3_test_metrics.csv
+results/model/Light_ResNet18_orgs.pt
+```

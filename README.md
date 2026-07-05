@@ -22,7 +22,7 @@ Supported datasets:
 +-- Code/
 |   +-- config.json      # Central experiment configuration
 |   +-- data.py          # Dataset loading, train/validation split, normalization
-|   +-- inference.py     # Test-set inference and classification metrics
+|   +-- evaluate.py      # Test-set inference and classification metrics
 |   +-- models.py        # AlexNet, VGG16, and ResNet18 definitions
 |   +-- train.py         # Main training entry point
 |   +-- trainer.py       # Training and validation loop
@@ -69,6 +69,7 @@ data/
 +-- chest.pt
 +-- lesions.pt
 +-- orgs.pt
++-- organs.pt
 ```
 
 Each `.pt` file must contain:
@@ -98,31 +99,25 @@ Important fields:
 
 ## Training
 
-Run the default configuration:
+Run Task 1 using the configuration in `Code/config.json`:
 
 ```bash
-python3 Code/train.py
+python3 Code/train.py --task task1
 ```
 
-Run one specific dataset/model pair:
+Run the Task 2 green benchmark matrix:
 
 ```bash
-python3 Code/train.py --data cells --model AlexNet
-python3 Code/train.py --data chest --model ResNet18
-python3 Code/train.py --data lesions --model VGG16
+python3 Code/train.py --task task2
 ```
 
-Run every configured dataset/model pair:
+Run Task 3 transfer-learning experiments:
 
 ```bash
-python3 Code/train.py --all
+python3 Code/train.py --task task3
 ```
 
-Use a separate configuration file:
-
-```bash
-python3 Code/train.py --config path/to/config.json
-```
+To run only one dataset/model pair, set `RUN_ALL` to `false` and edit `DATA`, `MODEL`, and `EPOCHS` in `Code/config.json`.
 
 ## Outputs
 
@@ -135,10 +130,12 @@ After inference, the pipeline reports:
 - macro recall
 - macro F1-score
 
-Metrics are appended to:
+Task-specific metrics are appended to:
 
 ```text
-results/test_metrics.csv
+results/task1_test_metrics.csv
+results/task2_test_metrics.csv
+results/task3_test_metrics.csv
 ```
 
 ## Verification Commands
@@ -146,13 +143,13 @@ results/test_metrics.csv
 Check that the Python files compile:
 
 ```bash
-python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/inference.py Code/utils.py
+python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/evaluate.py Code/utils.py Code/runner.py Code/transfer.py
 ```
 
-Run a short smoke training job:
+Run a short smoke training job by temporarily setting `RUN_ALL` to `false`, choosing one `DATA`/`MODEL` pair in `Code/config.json`, and then running:
 
 ```bash
-python3 Code/train.py --data cells --model AlexNet
+python3 Code/train.py --task task1
 ```
 
 Check model output shapes for all dataset/model combinations:
@@ -165,7 +162,7 @@ import models
 
 datasets = {
     "cells": (3, 8),
-    "chest": (1, 3),
+    "chest": (1, 2),
     "lesions": (3, 7),
     "orgs": (1, 11),
 }
@@ -183,17 +180,17 @@ PY
 
 ## Current Benchmark Status
 
-The current local smoke benchmark for `cells` + `AlexNet` reached 89.62% test accuracy after 3 epochs. The assignment target for `cells` is 90%, so this result is close but should be rerun with more epochs before final submission.
+The completed Task 2 benchmark is stored in `results/task2_test_metrics.csv`. It uses 20 epochs and includes baseline/lightweight results, accuracy metrics, runtime, peak memory, and inference latency.
 
-The full benchmark matrix across all four datasets and all three models must be completed before final grading. See `REPORT.md` for the current benchmark table and remaining work.
+All four datasets have at least one model above the assignment target. See `REPORT.md` for the final Task 2 benchmark table and model recommendations.
 
 ## Notes for Final Submission
 
 Before submitting, confirm that:
 
 - `README.md`, `AUDIT_LOG.md`, and `REPORT.md` are committed.
-- The full dataset/model benchmark matrix has been run.
-- `REPORT.md` contains final metrics for all required permutations.
+- `results/task1_test_metrics.csv`, `results/task2_test_metrics.csv`, and `results/task3_test_metrics.csv` are present as final result artifacts.
+- `REPORT.md` contains final Task 2 and Task 3 metrics.
 - The final branch required by the course contains the production-ready code and documentation.
 
 ## References
