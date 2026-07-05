@@ -28,12 +28,14 @@ def build_pretrained_model(task3_config, mode, device):
     if not checkpoint_path.is_absolute():
         checkpoint_path = Path(__file__).resolve().parent.parent / checkpoint_path
 
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(
+            f"Missing source checkpoint: {checkpoint_path}. "
+            "Run task2 first so the Light_ResNet18 orgs checkpoint is created."
+        )
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint)
-
-    # freeze parameters 
-    print(model)
 
     #adjust classifier for new number of classes
     if isinstance(model.classifier, nn.Sequential):# VGG / AlexNet

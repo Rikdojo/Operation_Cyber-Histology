@@ -10,8 +10,6 @@ def evaluate_model(model, test_loader, device):
 
     label_list = []
     prediction_list = []
-    total_samples = 0
-    total_samples = len(test_loader.dataset)
 
     with torch.no_grad():
         for images, labels in test_loader:
@@ -36,4 +34,3 @@ def evaluate_model(model, test_loader, device):
 
   
     return accuracy, precision, recall, macro_f1
-
