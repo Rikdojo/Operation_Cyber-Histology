@@ -14,6 +14,7 @@ Supported datasets:
 - `chest`
 - `lesions`
 - `orgs`
+- `organs` for the Task 3 scarce-data experiment
 
 ## Repository Layout
 
@@ -21,19 +22,23 @@ Supported datasets:
 .
 +-- Code/
 |   +-- config.json      # Central experiment configuration
-|   +-- data.py          # Dataset loading, train/validation split, normalization
+|   +-- data.py          # Dataset loading, train/validation split, normalization, data augmentation
 |   +-- evaluate.py      # Test-set inference and classification metrics
-|   +-- models.py        # AlexNet, VGG16, and ResNet18 definitions
-|   +-- train.py         # Main training entry point
-|   +-- trainer.py       # Training and validation loop
-|   +-- utils.py         # CSV/reporting helpers
+|   +-- models.py        # AlexNet, VGG16, ResNet18, and lightweight variants
+|   +-- runner.py        # Coordinates training, evaluation, checkpointing, and result collection
+|   +-- train.py         # Main entry point for Task 1, Task 2, and Task 3 runs
+|   +-- trainer.py       # Training, validation, early stopping, and best-state restoration
+|   +-- transfer.py      # Scratch, feature-extraction, and fine-tuning model setup
+|   +-- utils.py         # CSV writing and training-history plot helpers
++-- tests/
+|   +-- test_pipeline.py # Automated unit tests for pipeline components
 +-- AUDIT_LOG.md         # Technical bug and correction log
 +-- REPORT.md            # Benchmark summary and model recommendation notes
 +-- README.md
 +-- assignment_final.pdf
 ```
 
-The `data/` and `results/` folders are intentionally ignored by Git because the dataset files and generated metrics are local artifacts.
+The `data/` folder is ignored because the dataset files are local artifacts. The `results/` folder is ignored for newly generated files, while the final required CSV files and Task 3 source checkpoint are tracked as submission artifacts.
 
 ## Prerequisites
 
@@ -43,12 +48,23 @@ The `data/` and `results/` folders are intentionally ignored by Git because the 
 - scikit-learn
 - Matplotlib
 
-Create and activate a virtual environment:
+## Environment Setup
+
+Choose one of the following environment options.
+
+### Option 1: Python venv
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
+```
+
+### Option 2: Conda
+
+```bash
+conda create -n cyber_histology python=3.10
+conda activate cyber_histology
 ```
 
 Install dependencies:
@@ -87,37 +103,49 @@ Important fields:
 
 | Field | Purpose |
 |---|---|
+| `RUN_ALL` | Whether to run all configured dataset-model pairs instead of one selected pair |
 | `DATA` | Default dataset for a single run |
-| `MODEL` | Default model for a single run |
 | `DATA_PATH` | Relative or absolute path to the dataset folder |
 | `BATCH_SIZE` | Mini-batch size |
-| `EPOCHS` | Number of training epochs |
-| `LEARNING_RATE` | Adam optimizer learning rate |
+| `MODELS` | Baseline model architectures available for Task 1 and Task 2 |
+| `MODEL` | Default model for a single run |
 | `DATASETS` | Dataset-specific channel and class counts |
-| `MODELS` | Supported model names |
+| `DROP_RATE` | Dropout probability |
+| `ACTIVATION` | Activation function used by ResNet-style blocks |
+| `LEARNING_RATE` | Adam optimizer learning rate |
+| `EPOCHS` | Maximum number of training epochs |
 | `VAL_SPLIT` | Fraction of training data reserved for validation |
+| `SEED` | Random seed for experiment setup and the train/validation split |
+| `OUTPUT_DIR` | Directory for saved metrics, checkpoints, and training-history plots |
+| `PATIENCE` | Early-stopping patience based on validation loss |
+| `task2` | Task 2 benchmark configuration for baseline/lightweight model comparisons |
+| `task3` | Task 3 transfer-learning configuration for the scarce `organs` experiment |
 
-## Training
+Data loading uses a seeded random train/validation split and training-only per-channel normalization.
 
-Run Task 1 using the configuration in `Code/config.json`:
+## Running the Pipeline
+
+Run commands from the repository root.
+
+### Task 1: Corrected Baseline Pipeline
 
 ```bash
 python3 Code/train.py --task task1
 ```
 
-Run the Task 2 green benchmark matrix:
+### Task 2: Green Initiative Benchmark
 
 ```bash
 python3 Code/train.py --task task2
 ```
 
-Run Task 3 transfer-learning experiments:
+### Task 3: Scarce-Data Transfer Learning Benchmark
 
 ```bash
 python3 Code/train.py --task task3
 ```
 
-To run only one dataset/model pair, set `RUN_ALL` to `false` and edit `DATA`, `MODEL`, and `EPOCHS` in `Code/config.json`.
+To run only one configured debug experiment, set `RUN_ALL` to `false` and edit `DATA`, `MODEL`, and `EPOCHS` in `Code/config.json`.
 
 ## Outputs
 
@@ -130,7 +158,7 @@ After inference, the pipeline reports:
 - macro recall
 - macro F1-score
 
-Task-specific metrics are appended to:
+Metrics are saved to task-specific CSV files:
 
 ```text
 results/task1_test_metrics.csv
@@ -138,63 +166,109 @@ results/task2_test_metrics.csv
 results/task3_test_metrics.csv
 ```
 
-## Verification Commands
+Model checkpoints are saved under:
 
-Check that the Python files compile:
-
-```bash
-python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/evaluate.py Code/utils.py Code/runner.py Code/transfer.py
+```text
+results/model/
 ```
 
-Run a short smoke training job by temporarily setting `RUN_ALL` to `false`, choosing one `DATA`/`MODEL` pair in `Code/config.json`, and then running:
+Loss-curve PNG files are saved under:
 
-```bash
-python3 Code/train.py --task task1
+```text
+results/history/
 ```
 
-Check model output shapes for all dataset/model combinations:
+## Green Initiative Benchmark
 
-```bash
-python3 - <<'PY'
-import sys, torch
-sys.path.insert(0, "Code")
-import models
+Task 2 compares baseline and lightweight model configurations to evaluate the trade-off between classification performance and computational efficiency.
 
-datasets = {
-    "cells": (3, 8),
-    "chest": (1, 2),
-    "lesions": (3, 7),
-    "orgs": (1, 11),
-}
+The `task2` block in `Code/config.json` defines:
 
-for dataset, (channels, classes) in datasets.items():
-    x = torch.randn(2, channels, 64, 64)
-    for model_name in ["AlexNet", "VGG16", "ResNet18"]:
-        model = getattr(models, model_name)(in_channels=channels, num_classes=classes)
-        model.eval()
-        with torch.no_grad():
-            y = model(x)
-        print(dataset, model_name, tuple(y.shape))
-PY
+- `MODELS`: `AlexNet`, `VGG16`, and `ResNet18`
+- `MODES`: `Baseline` and `Light`
+
+Task 2 metrics are written to:
+
+```text
+results/task2_test_metrics.csv
 ```
 
-## Current Benchmark Status
+The Task 2 pipeline records classification performance and efficiency metrics:
 
-The completed Task 2 benchmark is stored in `results/task2_test_metrics.csv`. It uses 20 epochs and includes baseline/lightweight results, accuracy metrics, runtime, peak memory, and inference latency.
+- accuracy
+- macro precision
+- macro recall
+- macro F1-score
+- trainable and total parameter count
+- training runtime
+- inference latency per sample
+- peak CUDA or MPS memory when available
 
-All four datasets have at least one model above the assignment target. See `REPORT.md` for the final Task 2 benchmark table and model recommendations.
+Task 2 also creates the source checkpoint required by Task 3:
 
-## Notes for Final Submission
+```text
+results/model/Light_ResNet18_orgs.pt
+```
 
-Before submitting, confirm that:
+## Task 3 Organs Transfer Benchmark
 
-- `README.md`, `AUDIT_LOG.md`, and `REPORT.md` are committed.
-- `results/task1_test_metrics.csv`, `results/task2_test_metrics.csv`, and `results/task3_test_metrics.csv` are present as final result artifacts.
-- `REPORT.md` contains final Task 2 and Task 3 metrics.
-- The final branch required by the course contains the production-ready code and documentation.
+Task 3 keeps the Task 2 lightweight model work and adds a transfer-learning experiment for the scarce `organs` data.
 
-## References
+The `task3` block in `Code/config.json` defines:
 
-- GitHub Docs: About READMEs - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
-- PyTorch Docs: Reproducibility - https://docs.pytorch.org/docs/stable/notes/randomness.html
-- scikit-learn Docs: Classification metrics - https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics
+- source dataset: `orgs`
+- target dataset: `organs`
+- model: `Light_ResNet18`
+- transfer modes: `scratch`, `feature_extraction`, and `fine_tune`
+- data augmentation: disabled by default
+- source checkpoint: `results/model/Light_ResNet18_orgs.pt`
+
+The `orgs.pt` dataset is used as the source dataset for learning reusable image features. The smaller `organs.pt` dataset is used as the target dataset for the scarce-data transfer-learning experiment.
+
+Run Task 2 before Task 3 so that the source checkpoint exists.
+
+Task 3 metrics are written to:
+
+```text
+results/task3_test_metrics.csv
+```
+
+Task 3 saves one target-model checkpoint for each transfer-learning mode:
+
+```text
+results/model/Light_ResNet18_scratch_organs.pt
+results/model/Light_ResNet18_feature_extraction_organs.pt
+results/model/Light_ResNet18_fine_tune_organs.pt
+```
+
+## Testing Framework
+
+The repository includes automated unit tests in the `tests/` directory.
+
+Check that all Python modules compile successfully:
+
+```bash
+python3 -m compileall Code
+```
+
+Run the automated test suite:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+The tests verify:
+
+- required configuration sections
+- Task 1 and Task 2 experiment-list generation
+- model output shapes
+- dataset loading and data splitting
+- Task 2 result metrics and resource-measurement fields
+- device selection and CPU memory handling
+
+## Final Submission Checklist
+
+- Confirm `README.md`, `AUDIT_LOG.md`, and `REPORT.md` are committed on the final branch.
+- Confirm `results/task1_test_metrics.csv`, `results/task2_test_metrics.csv`, and `results/task3_test_metrics.csv` are available as final result artifacts.
+- Confirm `REPORT.md` contains the final Task 1, Task 2, and Task 3 metrics.
+- Confirm `results/model/Light_ResNet18_orgs.pt` exists before rerunning Task 3 transfer modes.
