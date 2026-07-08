@@ -31,7 +31,6 @@ Audited files:
 | `Code/data.py` | Color datasets were normalized with unsuitable global statistics. | Channel statistics were collapsed together instead of being computed per image channel. | Implemented training-only per-channel mean/std normalization for train, validation, and test tensors. | `a08bd60` |
 | `Code/trainer.py` | `CrossEntropyLoss` could fail or train on incorrectly shaped targets. | Labels were stored as `(N, 1)` tensors and not consistently converted to one-dimensional integer class targets. | Converted labels with `.view(-1).long()` during training and evaluation. | `7535784` |
 | `Code/trainer.py` | Gradients could accumulate across mini-batches and destabilize learning. | Optimizer gradients were not cleared before each backward pass. | Called `optimizer.zero_grad()` before computing gradients for each batch. | `6307acb` |
-| `Code/trainer.py` | Accuracy calculation was harder to reason about and shadowed a Python built-in. | The variable name `sum` was used for sample counting. | Renamed the counter to `total` and used it consistently in loss/accuracy calculations. | `7535784` |
 | `Code/trainer.py` | Final evaluation could use a worse model than an earlier validation epoch. | The training loop did not restore the best validation-loss state after training. | Added best-state tracking, early stopping, and restoration of the best validation model. | `f314b14` |
 | `Code/models.py` | ResNet18 produced no logits, causing training/inference to fail. | `forward()` called the classifier but did not return its output. | Returned `self.classifier(out)` from the ResNet18 forward pass. | `6307acb` |
 | `Code/models.py` | ResNet18 gradients could be weakened or neutralized by a non-learning activation placeholder. | Default activation was set to identity-like behavior instead of a nonlinear activation. | Set the default activation to `ReLU` and made activation configurable. | `6307acb` |
@@ -39,7 +38,6 @@ Audited files:
 | `Code/models.py` | VGG configuration C tail convolutions had incorrect spatial behavior. | The 1x1 convolution tail used the same padding as 3x3 convolutions. | Used zero padding for 1x1 convolutions and normal padding for 3x3 convolutions. | `6307acb` |
 | `Code/models.py` | AlexNet failed for grayscale datasets and datasets with class counts other than 11. | Input channels and output classes were hardcoded. | Changed AlexNet to accept `in_channels` and `num_classes` from the configuration. | `6307acb` |
 | `Code/models.py` | AlexNet classifier shape was incompatible with the feature tensor for 64x64 inputs. | The first linear layer expected 2048 features while the adapted feature extractor produced 3072. | Set the first AlexNet classifier layer to `nn.Linear(3072, 1024)`. | `6307acb` |
-| `Code/models.py` | Task 2 lightweight variants could not run from the recovered stubs. | Lightweight classes were missing valid model definitions. | Implemented lightweight AlexNet, VGG16, and ResNet18 variants with reduced parameter counts and the same input/output contract. | `e938a98` |
 | `Code/train.py` | Only a single hardcoded experiment could be run cleanly. | Training entry point did not expose dataset/model/task selection. | Added task-aware run-list support for configured dataset/model combinations. | `b3baeb2` |
 | `Code/train.py` | Running `python3 Code/train.py --task ...` could crash before training started. | The parser only defined `--task`, but `main()` still tried to read removed arguments. | Loaded `Code/config.json` directly and kept `--task` as the supported command-line switch. | `180f2b1` |
 | `Code/train.py` | `RUN_ALL=false` still behaved like a multi-model run. | The single-run branch returned every configured model instead of the selected `DATA` and `MODEL`. | Made task 1 return one configured dataset/model pair and task 2 return one baseline debug run when `RUN_ALL` is false. | `180f2b1` |
@@ -66,18 +64,10 @@ Audited files:
 | `Code/utils.py` | Results output could fail if the target folder did not exist. | CSV writing assumed the parent output directory was already present. | Created the output directory before writing metrics. | `2de48be` |
 | `Code/runner.py` / `Code/utils.py` | Training produced no reusable loss-history artifacts. | The pipeline printed epoch logs but did not save training/validation loss curves. | Saved loss-curve PNG files under `results/history/` for each run. | `f314b14` |
 | `Code/runner.py` | Model artifacts were not organized consistently across tasks. | Checkpoint paths were not connected to the shared output directory. | Saved model checkpoints under `results/model/` with dataset/model/mode-specific filenames. | `f314b14` |
-| `Code/data.py` | Data augmentation for Task 3 introduced an avoidable dependency. | A small optional transform used `torchvision` even though the project only needed a simple training-time flip. | Replaced it with a PyTorch-only horizontal flip augmentation. | `1fb8472` |
+| `Code/models.py` | Task 2 required lightweight alternatives for Green Initiative benchmarking. | The recovered project contained only the baseline model families. | Implemented lightweight AlexNet, VGG16, and ResNet18 variants with reduced parameter counts and the same input/output contract. | `e938a98` |
+| `Code/data.py` | A horizontal flip alone provided limited variation for the scarce Task 3 training data. | The initial augmentation did not vary image geometry, brightness, or contrast. | Added probabilistic affine, brightness, and contrast transformations and passed the seeded generator to the shuffled training loader. | `9568bd1` |
 | `tests/test_pipeline.py` | The integration branch needed a committed testing framework. | The recovered project did not include tests for config, model shapes, loaders, runner helpers, or device fallback behavior. | Added `unittest` coverage for config sections, run lists, model shapes, synthetic `.pt` data loading, green metric fields, and CPU memory fallback. | `6163c34` |
 | `README.md` / `REPORT.md` | Final reproduction instructions and benchmark interpretation were incomplete. | Documentation lagged behind the unified Task 1-3 pipeline and final benchmark outputs. | Documented task commands, output files, green metrics, transfer workflow, and final benchmark recommendations. | `2206831` |
-
-## Current Open Risks
-
-| Area | Risk | Recommendation |
-|---|---|---|
-| Dependency reproducibility | Dependencies are documented in `README.md`, but there is no committed `requirements.txt`. | Add a small dependency file before final packaging if the submission expects installable dependencies as a file. |
-| Statistical robustness | The final benchmarks are single-seed runs. | If time permits, rerun the important recommendations with additional seeds and report mean/std values. |
-| Result artifact packaging | The repository ignores newly generated `results/` files and all local `data/` files by default. | Keep the required CSV/checkpoint artifacts tracked or submit any additional generated evidence separately if the course requires it. |
-| Shuffle reproducibility | The train/validation split is seeded, but `DataLoader(..., shuffle=True)` does not currently pass a seeded generator. | Add a seeded `torch.Generator` to the training loader if strict run-to-run shuffle reproducibility is required. |
 
 ## Verification Evidence
 

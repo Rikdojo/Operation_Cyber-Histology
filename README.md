@@ -101,25 +101,25 @@ The training pipeline is controlled through `Code/config.json`.
 
 Important fields:
 
-| Field | Purpose |
-|---|---|
-| `RUN_ALL` | Whether to run all configured dataset-model pairs instead of one selected pair |
-| `DATA` | Default dataset for a single run |
-| `DATA_PATH` | Relative or absolute path to the dataset folder |
-| `BATCH_SIZE` | Mini-batch size |
-| `MODELS` | Baseline model architectures available for Task 1 and Task 2 |
-| `MODEL` | Default model for a single run |
-| `DATASETS` | Dataset-specific channel and class counts |
-| `DROP_RATE` | Dropout probability |
-| `ACTIVATION` | Activation function used by ResNet-style blocks |
-| `LEARNING_RATE` | Adam optimizer learning rate |
-| `EPOCHS` | Maximum number of training epochs |
-| `VAL_SPLIT` | Fraction of training data reserved for validation |
-| `SEED` | Random seed for experiment setup and the train/validation split |
-| `OUTPUT_DIR` | Directory for saved metrics, checkpoints, and training-history plots |
-| `PATIENCE` | Early-stopping patience based on validation loss |
-| `task2` | Task 2 benchmark configuration for baseline/lightweight model comparisons |
-| `task3` | Task 3 transfer-learning configuration for the scarce `organs` experiment |
+| Field           | Purpose                                                                        |
+| --------------- | ------------------------------------------------------------------------------ |
+| `RUN_ALL`       | Whether to run all configured dataset-model pairs instead of one selected pair |
+| `DATA`          | Default dataset for a single run                                               |
+| `DATA_PATH`     | Relative or absolute path to the dataset folder                                |
+| `BATCH_SIZE`    | Mini-batch size                                                                |
+| `MODELS`        | Baseline model architectures available for Task 1 and Task 2                   |
+| `MODEL`         | Default model for a single run                                                 |
+| `DATASETS`      | Dataset-specific channel and class counts                                      |
+| `DROP_RATE`     | Dropout probability                                                            |
+| `ACTIVATION`    | Activation function used by ResNet-style blocks                                |
+| `LEARNING_RATE` | Adam optimizer learning rate                                                   |
+| `EPOCHS`        | Maximum number of training epochs                                              |
+| `VAL_SPLIT`     | Fraction of training data reserved for validation                              |
+| `SEED`          | Random seed for experiment setup and the train/validation split                |
+| `OUTPUT_DIR`    | Directory for saved metrics, checkpoints, and training-history plots           |
+| `PATIENCE`      | Early-stopping patience based on validation loss                               |
+| `task2`         | Task 2 benchmark configuration for baseline/lightweight model comparisons      |
+| `task3`         | Task 3 transfer-learning configuration for the scarce `organs` experiment      |
 
 Data loading uses a seeded random train/validation split and training-only per-channel normalization.
 
