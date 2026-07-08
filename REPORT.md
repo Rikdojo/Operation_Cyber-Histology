@@ -127,25 +127,77 @@ The lightweight models substantially reduce parameter count and memory. `Light_V
 
 The completed benchmark supports `Light_ResNet18` as the best overall green recommendation for `cells`, `lesions`, and `orgs`. It keeps the residual architecture's accuracy advantage while reducing parameter count, memory footprint, and inference latency relative to baseline `ResNet18`. For `chest`, baseline `ResNet18` should be kept because it is the strongest result above the 87% target.
 
-## Task 3: Organs Scarce-Data Transfer
 
-The new `organs` dataset is smaller than the original `orgs` dataset and has 11 classes. Task 3 compares training from scratch against transfer from the larger `orgs` profile. The source checkpoint is:
+## Task 3 — Organs Classification Knowledge Transfer Adaptation
 
-```text
-results/model/Light_ResNet18_orgs.pt
-```
+The new `organs` dataset contains 11 classes but is much smaller than other existing dataset. Therefore, Task 3 evaluates whether transfer learning from larger and most alike`orgs` dataset can provide a robust model for the new organs classification task.
 
-Task 3 results are written to `results/task3_test_metrics.csv`.
+`Light_ResNet18_orgs` was selected as the pre-trained source model because it achieved a strong balance between accuracy and efficiency on the orgs dataset in Task 2.. Also, the`orgs`dataset contains 15,367 training images and is visually the most similar dataset to small `organs` dataset which contains only 500 images. 
 
-| Dataset | Model | Mode | Epochs | Trainable params | Train time | Memory | Accuracy | Precision | Recall | Macro F1 |
-|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `organs` | `Light_ResNet18_scratch` | `scratch` | 20 | 4,183,627 | 59.8s | 121.4 MB | 64.00% | 60.86% | 56.62% | 56.95% |
-| `organs` | `Light_ResNet18_feature_extraction` | `feature_extraction` | 20 | 2,827 | 18.9s | 29.8 MB | 62.50% | 55.83% | 54.64% | 52.79% |
-| `organs` | `Light_ResNet18_fine_tune` | `fine_tune` | 20 | 2,266,379 | 15.5s | 316.3 MB | 66.50% | 64.36% | 58.85% | 58.39% |
+### Experimental Setup
 
-All three Task 3 modes exceed the requested 40% test accuracy. The best result is `fine_tune`, with 66.50% accuracy and 58.39% macro F1. This suggests that the `orgs` source checkpoint provides useful features, but the target task still benefits from adapting the deeper residual stage to the scarce `organs` images.
+All experiments used a validation split of 0.20, a maximum of 30 epochs, a learning rate of 0.001, and a dropout rate of 0.5. A fixed random seed of 42 was used for reproducibility. The following training modes were compared:
 
-The `organs` target set has only 450 training samples after the validation split and 50 validation samples. Because the validation set is small, individual percentage points are noisy. The practical recommendation is to use `fine_tune` for the current Task 3 result, then rerun with multiple random seeds when more compute is available.
+ The following training modes were compared:
+
+| Mode               | Description                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| Scratch            | Random initialization; trained only on the small `organs` dataset           |
+| Feature extraction | Pre-trained `orgs` backbone frozen; only the new 11-class classifier trained |
+| Fine-tuning        | Pre-trained model partially fine-tuned; the classifier and final residual block were unfrozen      |
+
+The result is reported below  **without data augmentation**.
+
+All approaches exceeded the required minimum test accuracy of 40%. Transfer learning improved performance compared with scratch training, showing that features learned from the larger `orgs` dataset were transferable to the new `organs` dataset.
+
+
+### Classification Performance
+
+| Mode               | Test Accuracy | Macro Precision | Macro Recall |  Macro F1 |
+| ------------------ | ------------: | --------------: | -----------: | --------: |
+| Scratch            |         58.0% |           52.3% |        55.0% |     50.8% |
+| Feature extraction |         67.5% |           65.4% |        61.7% |     62.3% |
+| Fine-tuning        |     **70.0%** |       **67.0%** |    **62.8%** | **63.5%** |
+
+### Computational Efficiency
+
+| Mode               | Trainable Parameters | Training Time | Peak Training Memory | Inference Latency / Sample |
+| ------------------ | -------------------: | -------------:| -------------------: | -------------------------: |
+| Scratch            |            4,183,627 |         23.7 s|             652.7 MB |                   0.845 ms |
+| Feature extraction |                2,827 |           11.7|             324.6 MB |                   0.761 ms |
+| Fine-tuning        |            2,266,379 |          9.3 s|             353.2 MB |                   0.766 ms |
+
+
+The scratch model achieved the lowest test accuracy (58.0%). It also required the most training time, peak GPU memory, and inference time. In contrast, both transfer-learning approaches achieved better classification performance with lower computational cost. Fine-tuning had the shortest training time because training was ended by early stopping at epoch 13.
+
+
+### Effect of Data Augmentation 
+
+To further investigate whether the synthetic image made from data augmentation could increase the performance on the limited target dataset. The augmentation was applied random affine transformations, including rotations of up to 10 degrees, translations of up to 5%, and scaling between 0.9 and 1.1. In addition, brightness and contrast were randomly adjusted by up to 20%.
+
+
+| Mode               | Without Augmentation | With Augmentation | Effect             |
+| ------------------ | -------------------: | ----------------: | ------------------ |
+| Scratch            |                58.0% |         **66.5%** | Improved           |
+| Feature extraction |            **67.5%** |             65.0% | Decreased          |
+| Fine-tuning        |                70.0% |             70.0% | No accuracy change |
+
+
+With data augmentation, scratch model substantially improved test accuracy from (58.0%) to (66.5%). Without augmentation, the best validation performance was reached at epoch 13, whereas augmentation delayed the best epoch to 22. This is because the model started memorizing the training dataset earlier with non-augmented dataset, while augmentation made the learning task more challenging and allowed the model to train longer.
+
+In contrast, feature extraction performance decreased from (67.5%) to (65.0%). Since the pre-trained backbone was frozen and only the final classifier was unfrozen,the model had limited ability to adapt to the augmented images. Therefore, updating only the classifier may not have been enough for the model to handle the augmented images effectively.
+
+For fine-tuning, although augmentation helped reduce over-fitting during training, it did not change test accuracy, which remained at 70.0%. Because only the last residual block and classifier were trainable, the model could adapt more effectively to the augmented data than the feature-extraction model. However, the earlier frozen layers may have limited the model’s ability to adapt to the changes introduced by augmentation.
+
+
+### Recommendation and Limitations
+
+For the current small `organs` dataset, we recommend partial fine-tuning of Light_ResNet18 as it achieved the highest test accuracy while preserving trainable parameters, training time, and less peak memory than scratch model.
+
+The main limitation is the small size of the `organs` dataset. With only around 500 images across 11 classes, the number of training samples per class is limited. For classes with similar visual patterns, the model found difficult to learn reliable differences between them. 
+
+To address this limitation, we applied data augmentation to increase the variability of the training images. However, the augmentation experiment has limitations. Since we lack medical domain knowledge, we could not determine which data transformations would not negatively affect the model to learn important characteristics of each classes. Therefore, we restricted the augmentation to general image transformations, such as changes in brightness, contrast, rotation, and scale, which may not reflect how organ images actually vary in real `organs` data. Future work should evaluate the models on a larger dataset, apply cross-validation to obtain more reliable performance estimates and investigate augmentation settings with medical expert knowledge. 
+
 
 ## Current Limitations
 
