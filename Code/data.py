@@ -6,11 +6,15 @@ MG 6/6/2026
 import torch
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
 
 def image_augmentation(image):
-    if torch.rand(()) < 0.5:
-        image = torch.flip(image, dims=[2])
-    return image
+    train_transform = transforms.Compose([
+        transforms.RandomApply([ 
+            transforms.RandomAffine(degrees=10,translate=(0.05, 0.05),scale=(0.9, 1.1),) ], p=0.5),
+        transforms.RandomApply([
+                transforms.ColorJitter(brightness=0.2, contrast=0.2,)], p=0.5),])
+    return train_transform(image)
 
 
 class MedicalDataset(Dataset):
@@ -60,13 +64,11 @@ def get_loaders(data, data_path, batch_size, val_split=0.1, seed=42, transform=F
     
     mean = train_data.mean(dim=(0, 2, 3)).view(-1, 1, 1)
     std = train_data.std(dim=(0, 2, 3)).clamp_min(1e-8).view(-1, 1, 1)
-   
-   
     train_dataset = MedicalDataset(train_data, train_labels, mean, std, transform=transform)
     val_dataset = MedicalDataset(val_data, val_labels, mean, std, transform= False)
     test_dataset = MedicalDataset(test_data, test_labels, mean, std, transform = False)
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, generator=g)
     val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
     

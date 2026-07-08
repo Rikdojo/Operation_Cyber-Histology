@@ -7,7 +7,6 @@ import models
 
 def build_pretrained_model(task3_config, mode, device):
     model_name = task3_config["MODEL"]
-   
     model_class = getattr(models, model_name)
   
     if mode == "scratch":
@@ -57,7 +56,12 @@ def build_pretrained_model(task3_config, mode, device):
         if "ResNet" in model_name:
             for p in model.stage4.parameters():
                 p.requires_grad = True
-        else:
+        elif "VGG16" in model_name:
             for p in model.features[-1].parameters():
                 p.requires_grad = True
+                
+        elif "AlexNet" in model_name:
+            for layer in [model.features[12]]:
+                for p in layer.parameters():
+                    p.requires_grad = True
     return model
