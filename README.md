@@ -1,5 +1,7 @@
 # Operation Cyber-Histology
 
+**Authors:** Rikuto Momoi, Areej Anjum  
+
 Post-incident reconstruction of a PyTorch image-classification pipeline for the MAI/IDL SS26 final assignment.
 
 The project restores training and inference for three convolutional architectures across four medical image datasets:
