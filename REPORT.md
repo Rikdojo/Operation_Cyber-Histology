@@ -195,5 +195,4 @@ To address this limitation, we applied data augmentation to increase the variabi
 
 - The results come from one run per configuration, so random-seed variance is not measured.
 - The `lesions` dataset has weak macro F1 despite passing the accuracy target.
-- The `organs` validation split is small, so Task 3 validation percentages are noisy.
 - Memory values are runtime-dependent and may differ slightly on another GPU.

@@ -38,9 +38,7 @@ Audited files:
 | `Code/models.py` | VGG configuration C tail convolutions had incorrect spatial behavior. | The 1x1 convolution tail used the same padding as 3x3 convolutions. | Used zero padding for 1x1 convolutions and normal padding for 3x3 convolutions. | `6307acb` |
 | `Code/models.py` | AlexNet failed for grayscale datasets and datasets with class counts other than 11. | Input channels and output classes were hardcoded. | Changed AlexNet to accept `in_channels` and `num_classes` from the configuration. | `6307acb` |
 | `Code/models.py` | AlexNet classifier shape was incompatible with the feature tensor for 64x64 inputs. | The first linear layer expected 2048 features while the adapted feature extractor produced 3072. | Set the first AlexNet classifier layer to `nn.Linear(3072, 1024)`. | `6307acb` |
-| `Code/train.py` | Only a single hardcoded experiment could be run cleanly. | Training entry point did not expose dataset/model/task selection. | Added task-aware run-list support for configured dataset/model combinations. | `b3baeb2` |
-| `Code/train.py` | Running `python3 Code/train.py --task ...` could crash before training started. | The parser only defined `--task`, but `main()` still tried to read removed arguments. | Loaded `Code/config.json` directly and kept `--task` as the supported command-line switch. | `180f2b1` |
-| `Code/train.py` | `RUN_ALL=false` still behaved like a multi-model run. | The single-run branch returned every configured model instead of the selected `DATA` and `MODEL`. | Made task 1 return one configured dataset/model pair and task 2 return one baseline debug run when `RUN_ALL` is false. | `180f2b1` |
+
 
 ## Supporting Changes
 
@@ -55,6 +53,12 @@ Audited files:
 | `Code/evaluate.py` | Macro metrics could break on classes with no predicted samples. | Classification metrics did not guard against undefined precision/recall cases. | Used `zero_division=0` for macro precision, recall, and F1 calculation. | `4ac2bf0` |
 | `Code/transfer.py` | Task 3 could not compare scratch training, frozen feature extraction, and fine-tuning. | The recovered project had no transfer-learning setup for the scarce `organs` target. | Added model construction for `scratch`, `feature_extraction`, and `fine_tune` modes using the `orgs` source checkpoint. | `fc5bce9` |
 | `Code/config.json` | Task 3 had no central settings for target data, source checkpoint, model, transfer modes, or augmentation. | The scarce-data transfer experiment required settings outside the normal dataset/model matrix. | Added the `task3` configuration block for `orgs` to `organs` transfer with checkpoint and mode settings. | `5f4255e` |
+| `Code/train.py` | `RUN_ALL=false` still behaved like a multi-model run. | The single-run branch returned every configured model instead of the selected `DATA` and `MODEL`. | Made task 1 return one configured dataset/model pair and task 2 return one baseline debug run when `RUN_ALL` is false. | `180f2b1` |
+| `Code/train.py` | Running `python3 Code/train.py --task ...` could crash before training started. | The parser only defined `--task`, but `main()` still tried to read removed arguments. | Loaded `Code/config.json` directly and kept `--task` as the supported command-line switch. | `180f2b1` |
+| `Code/train.py` | Only a single hardcoded experiment could be run cleanly. | Training entry point did not expose dataset/model/task selection. | Added task-aware run-list support for configured dataset/model combinations. | `b3baeb2` |
+
+
+
 
 ### Additional Log, Runner, and History Updates
 
@@ -65,33 +69,6 @@ Audited files:
 | `Code/runner.py` / `Code/utils.py` | Training produced no reusable loss-history artifacts. | The pipeline printed epoch logs but did not save training/validation loss curves. | Saved loss-curve PNG files under `results/history/` for each run. | `f314b14` |
 | `Code/runner.py` | Model artifacts were not organized consistently across tasks. | Checkpoint paths were not connected to the shared output directory. | Saved model checkpoints under `results/model/` with dataset/model/mode-specific filenames. | `f314b14` |
 | `Code/models.py` | Task 2 required lightweight alternatives for Green Initiative benchmarking. | The recovered project contained only the baseline model families. | Implemented lightweight AlexNet, VGG16, and ResNet18 variants with reduced parameter counts and the same input/output contract. | `e938a98` |
-| `Code/data.py` | A horizontal flip alone provided limited variation for the scarce Task 3 training data. | The initial augmentation did not vary image geometry, brightness, or contrast. | Added probabilistic affine, brightness, and contrast transformations and passed the seeded generator to the shuffled training loader. | `9568bd1` |
 | `tests/test_pipeline.py` | The integration branch needed a committed testing framework. | The recovered project did not include tests for config, model shapes, loaders, runner helpers, or device fallback behavior. | Added `unittest` coverage for config sections, run lists, model shapes, synthetic `.pt` data loading, green metric fields, and CPU memory fallback. | `6163c34` |
-| `README.md` / `REPORT.md` | Final reproduction instructions and benchmark interpretation were incomplete. | Documentation lagged behind the unified Task 1-3 pipeline and final benchmark outputs. | Documented task commands, output files, green metrics, transfer workflow, and final benchmark recommendations. | `2206831` |
 
-## Verification Evidence
 
-Local checks performed on the current `integration` worktree:
-
-```bash
-python3 -m py_compile Code/train.py Code/trainer.py Code/data.py Code/models.py Code/evaluate.py Code/runner.py Code/transfer.py Code/utils.py
-```
-
-All listed files compiled successfully.
-
-The current testing framework runs with:
-
-```bash
-python3 -m unittest discover -s tests
-```
-
-The tests cover config loading, task 1/task 2 run lists, model output shapes, synthetic `.pt` data loading, green metric output fields, and device/memory fallback behavior.
-
-Current benchmark artifacts expected locally:
-
-```text
-results/task1_test_metrics.csv
-results/task2_test_metrics.csv
-results/task3_test_metrics.csv
-results/model/Light_ResNet18_orgs.pt
-```

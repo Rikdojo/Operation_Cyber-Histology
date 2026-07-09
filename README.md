@@ -266,9 +266,3 @@ The tests verify:
 - Task 2 result metrics and resource-measurement fields
 - device selection and CPU memory handling
 
-## Final Submission Checklist
-
-- Confirm `README.md`, `AUDIT_LOG.md`, and `REPORT.md` are committed on the final branch.
-- Confirm `results/task1_test_metrics.csv`, `results/task2_test_metrics.csv`, and `results/task3_test_metrics.csv` are available as final result artifacts.
-- Confirm `REPORT.md` contains the final Task 1, Task 2, and Task 3 metrics.
-- Confirm `results/model/Light_ResNet18_orgs.pt` exists before rerunning Task 3 transfer modes.
